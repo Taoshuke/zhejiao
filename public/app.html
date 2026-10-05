@@ -1,0 +1,1630 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<!-- 安装为应用后窗口标题栏与画布同色，两者之间不出现分界线 -->
+<meta name="theme-color" content="#F5F3EF">
+<title>折角</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* 浅色纸张底（方案二的浅色版）。每个分类一组「底色、点缀色、文字色」，内容页与博主页共用 */
+:root{
+  --canvas:#F5F3EF; --card:#FFFFFF; --glass:rgba(255,255,255,.72); --ink:#16151A; --ink-2:#5F5B66; --ink-3:#A29EA8;
+  --line:rgba(22,21,26,.07); --hover:rgba(22,21,26,.05); --field:rgba(22,21,26,.06); --focus:rgba(35,131,226,.55);
+  --gone:#E5484D; --star:#F5A524; --fresh:#2FA866; --pad:clamp(20px,3vw,40px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;color:var(--ink)}
+html{background:var(--canvas)}
+body{background:radial-gradient(1000px 520px at 78% -14%,#E9DEFF 0%,transparent 62%),radial-gradient(800px 480px at -5% 108%,#DDEFFF 0%,transparent 60%),var(--canvas);
+  font:14px/1.55 "Inter","Noto Sans SC",system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:grid;grid-template-columns:272px minmax(0,1fr);height:100vh;overflow:hidden}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+img{display:block}
+[hidden]{display:none!important}
+.spacer{flex:1}
+
+/* ===== 侧栏：平台切换在最上，四个入口，分类列表 ===== */
+aside{display:flex;flex-direction:column;min-height:0;padding:18px 14px 12px 18px;border-right:1px solid var(--line);background:rgba(255,255,255,.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+/* 标志是回首页的链接 */
+.brand{display:flex;align-items:center;gap:11px;padding:2px 4px 16px;color:inherit;text-decoration:none}
+.brand svg{width:36px;height:36px;flex:none;filter:drop-shadow(0 4px 8px rgba(22,21,26,.16))}
+.brand .wm{display:flex;flex-direction:column}
+.brand b{font:900 23px/1.1 "Noto Serif SC",serif;letter-spacing:.14em}
+.brand small{display:flex;align-items:center;gap:7px;margin-top:6px;font:600 9.5px/1 "Inter",sans-serif;letter-spacing:.34em;color:var(--ink-3)}
+.brand small::before{content:"";width:14px;height:1px;background:currentColor}
+.plats{display:flex;gap:3px;padding:3px;margin:0 0 16px;border-radius:12px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line)}
+/* 按字数分宽度：「Bilibili」「WeChat」比别的平台名长，等宽时挤 */
+.plat{flex:1 1 auto;display:flex;align-items:center;justify-content:center;height:30px;padding:0 4px;border:0;border-radius:9px;background:none;font-size:12px;font-weight:500;color:var(--ink-3);white-space:nowrap;cursor:pointer;transition:color .15s,background-color .15s}
+.plat:hover:not(:disabled){color:var(--ink)}
+.plat[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(22,21,26,.1)}
+.plat:disabled{opacity:.45;cursor:default}
+.pins{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+/* 四个入口和内容卡片同一套做法：各用一组分类配色、几何图形和细颗粒；选中时换成点缀色底、图形转白 */
+.pin{position:relative;overflow:hidden;isolation:isolate;height:100px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:12px;border:0;border-radius:18px;background:var(--bg);color:var(--ink);text-align:left;cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(22,21,26,.06);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background-color .2s}
+.pin:hover{transform:translateY(-2px)}
+.pin .mo{position:absolute;inset:0;z-index:-1;width:100%;height:100%;color:var(--ac);opacity:.55;pointer-events:none}
+.pin .ico{display:flex;color:var(--ac)}
+.pin .ft{display:flex;flex-direction:column;gap:5px}
+.pin .lab{font-size:12.5px;font-weight:600;line-height:1.2;color:color-mix(in srgb,var(--ink) 70%,transparent)}
+.pin .big{font:800 21px/1 "Inter",sans-serif;letter-spacing:-.02em}
+.pin[aria-current=true]{background:var(--ac);color:#fff;box-shadow:0 16px 28px -16px var(--ac)}
+.pin[aria-current=true] .mo{color:#fff;opacity:.22}
+.pin[aria-current=true] .ico,.pin[aria-current=true] .lab{color:rgba(255,255,255,.9)}
+.sec{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px 6px;font-size:12px;font-weight:600;color:var(--ink-3)}
+.sort{position:relative}
+.sortbtn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 7px 0 8px;border:0;border-radius:8px;background:none;font-size:12.5px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s}
+.sortbtn:hover,.sortbtn[aria-expanded=true]{background:var(--hover);color:var(--ink)}
+.sortbtn .ic{color:var(--ink-3)}
+.sortbtn .chev{color:var(--ink-3);transition:transform .2s}
+.sortbtn[aria-expanded=true] .chev{transform:rotate(180deg)}
+.sec .sortbtn{height:24px;font-size:12px;margin-right:-4px}
+.menu{position:absolute;top:calc(100% + 6px);right:0;z-index:20;min-width:216px;padding:5px;border-radius:12px;background:var(--card);box-shadow:0 0 0 1px var(--line),0 12px 32px -8px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.06);opacity:0;transform:translateY(-4px) scale(.98);transform-origin:top right;pointer-events:none;transition:opacity .14s,transform .14s}
+.menu.open{opacity:1;transform:none;pointer-events:auto}
+.sec .menu{right:-8px}
+.menu .mh{padding:7px 10px 5px;font-size:11.5px;font-weight:600;color:var(--ink-3)}
+.menu [role=menuitemradio],.menu [role=menuitemcheckbox]{display:grid;grid-template-columns:18px 1fr;column-gap:8px;align-items:center;width:100%;padding:7px 10px;border:0;border-radius:8px;background:none;text-align:left;cursor:pointer;color:var(--ink)}
+.menu [role=menuitemradio]:hover,.menu [role=menuitemradio]:focus-visible,.menu [role=menuitemcheckbox]:hover,.menu [role=menuitemcheckbox]:focus-visible{background:var(--hover);outline:none}
+.menu .ck{grid-row:span 2;color:var(--ink);opacity:0}
+.menu [aria-checked=true] .ck{opacity:1}
+.menu b{font-size:13px;font-weight:500}
+.menu small{grid-column:2;font-size:11.5px;color:var(--ink-3);line-height:1.4}
+.lib{flex:1;min-height:0;overflow:auto;scrollbar-width:none;margin:0 -4px;padding:2px 4px 8px;
+  -webkit-mask:linear-gradient(transparent,#000 8px,#000 calc(100% - 18px),transparent);mask:linear-gradient(transparent,#000 8px,#000 calc(100% - 18px),transparent)}
+.cat{display:flex;align-items:center;gap:10px;width:100%;padding:4px 8px 4px 6px;border:0;border-radius:12px;background:none;text-align:left;cursor:pointer;transition:background-color .15s,box-shadow .15s}
+.cat+.cat{margin-top:1px}
+.cat:hover{background:rgba(255,255,255,.6)}
+.cat[aria-current=true]{background:#fff;box-shadow:0 1px 3px rgba(22,21,26,.08)}
+/* 两页的分类封面同样大小：博主页是四张头像拼贴（参考 Apple Music 与 Spotify 的歌单拼贴），内容页是分类底色加线条图标 */
+.cover{flex:none;width:32px;height:32px;border-radius:9px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;background:var(--glass);box-shadow:inset 0 0 0 1px rgba(22,21,26,.05)}
+.cover img,.cover i{width:100%;height:100%;min-width:0;min-height:0;object-fit:cover}
+.tile{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--bg);color:var(--ac);box-shadow:inset 0 0 0 1px rgba(22,21,26,.05)}
+/* 名字在左、数量在右，一行放下，参考 Apple Music 与 Finder 的侧栏 */
+.cat .tx{min-width:0;flex:1;display:flex;align-items:baseline;gap:8px}
+.cat .tx b{min-width:0;flex:1;font-size:13.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat .tx span{flex:none;font-size:12px;color:var(--ink-3);line-height:1.35}
+.cat .grip{flex:none;color:var(--ink-3);opacity:0;transition:opacity .15s}
+.lib.sortable .cat{cursor:grab}
+.lib.sortable .cat:hover .grip,.lib.sortable .cat:focus-visible .grip{opacity:.7}
+.cat.dragging{opacity:.35}
+.foot{display:flex;align-items:center;gap:8px;margin-top:6px;padding:9px 8px;border-radius:10px;color:var(--ink-2);text-decoration:none;font-size:12.5px;white-space:nowrap;transition:background-color .15s,color .15s}
+.foot:hover{background:var(--hover);color:var(--ink)}
+button.foot{width:100%;border:0;background:none;cursor:pointer;text-align:left}
+.foot .ago{margin-left:auto;font-size:11.5px;color:var(--ink-3)}
+.foot .ago.stale{color:var(--gone)}
+.foot.busy svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 数据到达前没有内容可放，空容器与分类标题都先不出现 */
+.plats:empty,.sec:has(+ .lib:empty){display:none}
+
+/* ===== 主区：直接铺在画布上，内部自己滚动；页头只有一行，不放标题 ===== */
+.panel{min-width:0;overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(22,21,26,.15) transparent}
+.inner{min-height:100%;display:flex;flex-direction:column;padding:0 var(--pad) 60px}
+.head{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;margin:0 calc(-1 * var(--pad));padding:20px var(--pad) 18px;
+  background:linear-gradient(color-mix(in srgb,var(--canvas) 92%,transparent) 55%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.search{position:relative;display:block;flex:0 1 460px;min-width:0}
+.search input{width:100%;height:44px;border:0;border-radius:999px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);padding:0 46px;font-size:14px;outline:none;transition:background-color .15s,box-shadow .15s}
+.search input:focus{background:#fff;box-shadow:inset 0 0 0 1px var(--line),0 0 0 4px color-mix(in srgb,var(--focus) 18%,transparent)}
+.search input::placeholder{color:var(--ink-3)}
+.search input::-webkit-search-cancel-button{display:none}
+.search svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#6E6A63;pointer-events:none}
+.search kbd{position:absolute;right:16px;top:50%;transform:translateY(-50%);font:500 11px/1 "Inter",sans-serif;color:var(--ink-3);padding:3px 6px;border-radius:5px;box-shadow:inset 0 0 0 1px var(--line);pointer-events:none;transition:opacity .15s}
+.search input:focus~kbd,.search input:not(:placeholder-shown)~kbd{opacity:0}
+/* 胶囊分段按钮：「收藏、喜欢」与「博主、内容」，选中为黑底 */
+.seg{display:flex;flex:none;padding:4px;border-radius:999px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line)}
+.seg button{display:flex;align-items:center;gap:6px;height:34px;padding:0 16px;border:0;border-radius:999px;background:none;font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s}
+.seg button:hover{color:var(--ink)}
+.seg [aria-pressed=true],.seg [aria-selected=true],.seg [aria-pressed=true]:hover,.seg [aria-selected=true]:hover{background:var(--ink);color:#fff}
+.seg em{font-style:normal;font-weight:500;opacity:.55}
+.head .sortbtn{height:34px;padding:0 12px;border-radius:999px;font-size:13px}
+main{flex:1;display:flex;flex-direction:column}
+.band{display:flex;align-items:center;gap:12px;margin:26px 0 14px}
+.band:first-child{margin-top:6px}
+.band h2{margin:0;font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.band .n{font-size:12px;color:var(--ink-3)}
+.band hr{flex:1;border:0;border-top:1px solid var(--line);margin:0}
+/* 「名称」排列没有分档标题，第一行卡片与页头留出与分档时相同的间距 */
+main>.grid:first-child{margin-top:6px}
+.crumb{display:flex;align-items:baseline;gap:8px;margin:6px 0 18px;font-size:14px;color:var(--ink-3)}
+.crumb button{border:0;background:none;padding:0;font-size:14px;color:var(--ink-3);cursor:pointer}
+.crumb button:hover{color:var(--ink)}
+.crumb b{font-size:20px;font-weight:700;color:var(--ink)}
+.sk{height:110px;border-radius:20px;background:var(--hover);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+.state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 0}
+.state h2{margin:0;font-size:17px;font-weight:600}
+.state p{margin:8px 0 0;max-width:360px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
+.state .err{font:12px/1.6 ui-monospace,Consolas,monospace;color:var(--ink-3)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;margin-top:18px;padding:0 14px;border:0;border-radius:10px;background:var(--card);box-shadow:0 0 0 1px var(--line);font-size:13.5px;font-weight:500;color:var(--ink);text-decoration:none;cursor:pointer}
+.btn:hover{box-shadow:0 0 0 1px var(--line),0 8px 20px -12px rgba(22,21,26,.35)}
+.sentinel{height:1px}
+.toast{position:fixed;left:50%;bottom:28px;z-index:9;transform:translate(-50%,12px);padding:9px 16px;border-radius:12px;background:var(--ink);color:#fff;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ===== 卡片上的按钮：星标与菜单，悬停才出现 ===== */
+.hit{color:inherit;text-decoration:none}
+.hit::after{content:"";position:absolute;inset:0;border-radius:inherit}
+.hit:focus-visible{outline:none}
+.card:has(.hit:focus-visible),.poster:has(.hit:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+.star,.more{position:relative;z-index:1;flex:none;align-self:center;width:28px;height:28px;border:0;border-radius:8px;background:none;color:var(--ink-3);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s,color .15s,background-color .15s,transform .15s}
+.star{margin:-6px -8px -6px -2px}
+.more{margin:-6px -8px -6px 0}
+.star+.more{margin-left:2px}
+.card:hover .star,.star:focus-visible,.star[aria-pressed=true],.card:hover .more,.poster:hover .more,.art:hover .more,.more:focus-visible,.more[aria-expanded=true]{opacity:1}
+.star:hover,.more:hover,.more[aria-expanded=true]{background:var(--hover);color:var(--ink)}
+.star:active{transform:scale(.88)}
+.star[aria-pressed=true],.star[aria-pressed=true]:hover{color:var(--star)}
+.star[aria-pressed=true] svg{fill:currentColor}
+/* 触屏没有悬停，按钮常显但淡一些 */
+@media (hover:none){.star,.more{opacity:.5}}
+/* 卡片菜单浮在页面最上层，按按钮位置摆放，不受卡片网格与滚动裁剪 */
+.cardmenu{position:fixed;top:0;left:0;right:auto;min-width:200px;display:flex;flex-direction:column;max-height:min(460px,calc(100vh - 16px))}
+.cardmenu .cmlist{overflow:auto;min-height:0;scrollbar-width:thin}
+.cardmenu [role=menuitemradio],.cardmenu [role=menuitemcheckbox]{padding:6px 10px}
+.menu .sep{height:1px;margin:5px 6px;background:var(--line)}
+.menu [role=menuitem]{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:0;border-radius:8px;background:none;text-align:left;cursor:pointer;color:var(--ink);font-size:13px;font-weight:500}
+.menu [role=menuitem]:hover,.menu [role=menuitem]:focus-visible{background:var(--hover);outline:none}
+.menu [role=menuitem].warn{color:var(--gone)}
+.menu [role=menuitem].warn.armed,.menu [role=menuitem].warn.armed:hover{background:var(--gone);color:#fff}
+.when{color:var(--gone);font-weight:600}
+.when.new{color:var(--fresh)}
+
+/* ===== 博主卡片：白卡，头像外一圈分类色细环，名字用衬线体，分类标签用分类配色 ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{position:relative;display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:20px;background:var(--card);box-shadow:0 1px 2px rgba(22,21,26,.04),0 0 0 1px var(--line);transition:box-shadow .2s,transform .2s cubic-bezier(.2,.8,.2,1);content-visibility:auto;contain-intrinsic-size:auto 118px}
+.card:hover{box-shadow:0 18px 32px -20px rgba(22,21,26,.35),0 0 0 1px var(--line);transform:translateY(-2px)}
+.av{flex:none;width:52px;height:52px}
+.av img,.av .ph{width:52px;height:52px;border-radius:50%;object-fit:cover;background:var(--bg);display:grid;place-items:center;font:700 18px "Noto Serif SC",serif;color:var(--ac);box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ac)}
+.meta{min-width:0;flex:1}
+.top{display:flex;align-items:baseline;gap:8px;min-width:0}
+.name{min-width:0;font:700 15px/1.4 "Noto Serif SC",serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fans{flex:none;margin-left:auto;font-size:12px;color:var(--ink-3)}
+.card .when{display:block;margin-top:2px;font-size:11.5px}
+/* 简介不论长短都占两行，分类标签总在同一高度 */
+.bio{min-height:calc(12.5px * 1.55 * 2);margin-top:4px;font-size:12.5px;line-height:1.55;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.k{display:inline-flex;align-items:center;margin-top:9px;font:600 10.5px/1 "Inter","Noto Sans SC",sans-serif;letter-spacing:.12em;padding:5px 9px;border-radius:999px;background:var(--bg);color:var(--ac)}
+.card.gone .av img{filter:grayscale(1);opacity:.75}
+.card.gone .av img,.card.gone .av .ph{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ink-3)}
+
+/* ===== 内容卡片：每个分类一组配色，加几何图形与细颗粒（参考 Spotify 编辑歌单封面、企鹅现代经典丛书、Apple 网格渐变） ===== */
+.grain::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:.22;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* 图形垫在文字下面：卡片自成层叠上下文，图形放到 -1 层，文字不用定位，整卡链接的伪元素才能以卡片为准铺满 */
+.poster,.folder{position:relative;overflow:hidden;isolation:isolate;background:var(--bg);color:var(--ink)}
+.poster .mo,.folder .mo{position:absolute;inset:0;z-index:-1;width:100%;height:100%;color:var(--ac);pointer-events:none}
+.poster{flex:none;width:212px;aspect-ratio:3/4;border-radius:18px;padding:16px 16px 14px;display:flex;flex-direction:column;
+  box-shadow:0 1px 1px rgba(22,21,26,.05),0 18px 32px -24px rgba(22,21,26,.45),inset 0 0 0 1px rgba(22,21,26,.06);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.poster:hover{transform:translateY(-4px);box-shadow:0 1px 1px rgba(22,21,26,.05),0 26px 40px -24px rgba(22,21,26,.55),inset 0 0 0 1px rgba(22,21,26,.06)}
+.poster .pt{display:flex;align-items:center;gap:6px;min-height:22px}
+.poster .c{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font:600 10.5px/1 "Inter","Noto Sans SC",sans-serif;letter-spacing:.14em;color:var(--ac);white-space:nowrap}
+.poster .c::after{content:"";flex:1;height:1px;background:currentColor;opacity:.35;margin-left:4px}
+.poster .c svg{flex:none}
+.poster .more{margin:-4px -6px -4px 0;background:color-mix(in srgb,#fff 70%,transparent);color:var(--ink)}
+.poster .more:hover,.poster .more[aria-expanded=true]{background:#fff}
+/* 内容卡片的星标：只在收藏里有，标了星的视频进收藏夹里的「星标」 */
+.poster .star{margin:-4px 0 -4px 0;background:color-mix(in srgb,#fff 70%,transparent);color:var(--ink)}
+.poster .star:hover{background:#fff}
+.poster:hover .star{opacity:1}
+.poster .star[aria-pressed=true]{color:var(--star)}
+.poster .star+.more{margin-left:0}
+.libic{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:color-mix(in srgb,#fff 70%,transparent)}
+.libic.L{color:var(--gone)}
+.libic.K{color:var(--star)}
+.poster p{margin:auto 0 14px;font:600 16.5px/1.6 "Noto Serif SC",serif;letter-spacing:.01em;word-break:break-word;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.poster .m{display:flex;gap:8px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--ink) 18%,transparent);font-size:11px;letter-spacing:.02em;color:color-mix(in srgb,var(--ink) 62%,transparent);white-space:nowrap}
+.poster .m .au{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.poster .m span:last-child{margin-left:auto}
+.poster.gone{filter:saturate(.2);opacity:.8}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.vgrid .poster{width:auto;content-visibility:auto;contain-intrinsic-size:auto 280px}
+/* 收藏夹第一级：每个收藏夹一张色块，按名字配图标与配色 */
+.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:6px}
+.folder{height:178px;border:0;border-radius:22px;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;text-align:left;cursor:pointer;
+  box-shadow:0 22px 40px -28px rgba(22,21,26,.55),inset 0 0 0 1px rgba(22,21,26,.06);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.folder:hover{transform:translateY(-3px)}
+.folder .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--ink);color:var(--bg)}
+.folder b{display:block;font:700 24px "Noto Serif SC",serif}
+.folder i{font-style:normal;font-size:12px;letter-spacing:.06em;color:color-mix(in srgb,var(--ink) 60%,transparent)}
+/* 新建收藏夹：虚线画一个带标签页的空文件夹，里面一个加号；点开后同一个轮廓里输入名字 */
+.folder.new{align-items:center;justify-content:center;gap:10px;background:none;border:0;box-shadow:none;color:var(--ink-2);text-align:center}
+.folder.new svg.shape{position:absolute;inset:0;width:100%;height:100%;z-index:-1;color:rgba(22,21,26,.22);transition:color .2s}
+.folder.new .plus{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(22,21,26,.06);color:var(--ink);transition:background-color .2s,color .2s}
+.folder.new:hover svg.shape{color:rgba(22,21,26,.5)}
+.folder.new:hover .plus{background:var(--ink);color:#fff}
+.folder.new b{font:600 14px "Noto Sans SC",sans-serif}
+.folder.new.editing{cursor:default;padding:20px 32px}
+.folder.new.editing:hover{transform:none}
+.folder.new.editing svg.shape{color:var(--ink)}
+.folder.new input{width:100%;border:0;background:none;padding:2px 0;font:700 22px "Noto Serif SC",serif;color:var(--ink);text-align:center;outline:none}
+.folder.new input::placeholder{color:var(--ink-3)}
+.folder.new.editing i{font-size:12px}
+/* ===== 微信：只有一页公众号文章，白卡，底部是公众号与收藏日期；侧栏按公众号分类 ===== */
+.wgrid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.art{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px 18px 14px;border-radius:18px;background:var(--card);box-shadow:0 1px 2px rgba(22,21,26,.04),0 0 0 1px var(--line);transition:box-shadow .2s,transform .2s cubic-bezier(.2,.8,.2,1);content-visibility:auto;contain-intrinsic-size:auto 132px}
+.art:hover{box-shadow:0 18px 32px -20px rgba(22,21,26,.35),0 0 0 1px var(--line);transform:translateY(-2px)}
+.art:has(.hit:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+/* 卡片只有标题：衬线粗体，最多三行 */
+.art p{margin:0;min-height:calc(15px * 1.6 * 2);font:700 15px/1.6 "Noto Serif SC",serif;color:var(--ink);word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* 改标题：右上角铅笔按钮，悬停才出现；点了标题原地变输入框。和改公众号（右下角「…」）分开 */
+.art .pen{position:absolute;top:10px;right:10px;z-index:1;width:28px;height:28px;border:0;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,transparent);color:var(--ink-3);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s,color .15s,background-color .15s}
+.art:hover .pen,.art .pen:focus-visible{opacity:1}
+.art .pen:hover{background:var(--hover);color:var(--ink)}
+@media (hover:none){.art .pen{opacity:.5}}
+.art textarea.ttl{width:100%;min-height:calc(15px * 1.6 * 2 + 16px);margin:-8px 0;padding:7px 9px;border:0;border-radius:10px;background:var(--field);box-shadow:inset 0 0 0 1.5px var(--focus),0 0 0 4px color-mix(in srgb,var(--focus) 15%,transparent);font:700 15px/1.6 "Noto Serif SC",serif;color:var(--ink);resize:none;outline:none;overflow:hidden}
+.art .tip{font-size:11.5px;color:var(--ink-3)}
+.art .src{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);white-space:nowrap}
+/* 公众号名叠在整卡链接上面，点它看这个号的全部收藏 */
+.art .acc{position:relative;z-index:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink-2);text-decoration:none}
+.art .acc:hover{color:var(--ink);text-decoration:underline}
+.art time{margin-left:auto}
+/* 改公众号：卡片菜单里一个输入框；选中公众号时列表上方一行名字，可就地改名 */
+.medit{padding:4px 6px 2px}
+.medit input{width:100%;min-width:0;border:0;border-radius:8px;background:var(--field);padding:7px 10px;font:500 13.5px/1.4 "Inter","Noto Sans SC",sans-serif;color:var(--ink);outline:none}
+.medit input:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--focus) 35%,transparent)}
+.menu .mtip{padding:6px 10px 4px;font-size:11.5px;color:var(--ink-3);line-height:1.5}
+/* 选中公众号时列表上方的头部：首字封面、衬线大标题、篇数与最近收藏，右侧「重命名」；改名在标题位置就地进行 */
+.ahead{display:flex;align-items:center;gap:18px;margin:6px 0 22px;padding:0 0 20px;border-bottom:1px solid var(--line)}
+.ahead .atile{flex:none;width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:var(--bg);color:var(--ac);font:700 28px/1 "Noto Serif SC",serif;box-shadow:inset 0 0 0 1px rgba(22,21,26,.06),0 14px 26px -18px var(--ac)}
+.ahead .ainfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.ahead small{font:600 10.5px/1 "Inter","Noto Sans SC",sans-serif;letter-spacing:.24em;color:var(--ink-3)}
+.ahead h1{margin:0;font:700 26px/1.25 "Noto Serif SC",serif;letter-spacing:.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ahead .ameta{font-size:12.5px;color:var(--ink-2)}
+.ahead .ameta i{font-style:normal;margin:0 6px;color:var(--ink-3)}
+.ahead input{width:100%;min-width:0;margin:0;padding:0 0 2px;border:0;border-bottom:2px solid var(--ac);border-radius:0;background:none;font:700 26px/1.25 "Noto Serif SC",serif;color:var(--ink);outline:none}
+.ahead .acts{flex:none;display:flex;gap:8px}
+.abtn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s,box-shadow .15s}
+.abtn:hover{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line),0 6px 16px -10px rgba(22,21,26,.35)}
+.abtn.primary{background:var(--ink);color:#fff;box-shadow:none}
+.abtn.primary:hover{background:color-mix(in srgb,var(--ink) 86%,#fff)}
+.tile.ini{font:700 14px/1 "Noto Serif SC",serif}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}.card,.card:hover,.poster,.poster:hover,.folder,.folder:hover,.art,.art:hover{transition:none;transform:none}}
+
+/* 窄屏：侧栏变成顶部一条横向分类带，主区整页滚动 */
+@media (max-width:900px){
+  body{display:block;height:auto;overflow:auto}
+  aside{padding:14px 12px 10px;border-right:0}
+  .lib{-webkit-mask:none;mask:none;display:flex;gap:6px;overflow:auto;margin:0;padding:2px}.cat{flex:none;width:auto}.cat+.cat{margin-top:0}.cat .tx span{display:none}
+  .sec,.foot{display:none}
+  .panel{overflow:visible}
+  .head{position:static;flex-wrap:wrap}.search{flex:1 1 100%}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<aside>
+  <!-- 标志「折角」：把值得留下的那页折个角；圆是关注的人（与 icon.svg 同一图形） -->
+  <a class="brand" href="/" title="回到首页">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="brand-fold"><path d="M0 0H60L100 40V100H0Z"/></clipPath><linearGradient id="brand-flap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6A77E6"/><stop offset="1" stop-color="#3B46B4"/></linearGradient><filter id="brand-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter></defs><g clip-path="url(#brand-fold)"><path d="M50 0C80 0 89 0 94.5 5.5S100 20 100 50 100 89 94.5 94.5 80 100 50 100 11 100 5.5 94.5 0 80 0 50 0 11 5.5 5.5 20 0 50 0Z" fill="#FFFDF8" stroke="rgba(22,21,26,.1)" stroke-width="1.2"/></g><path d="M60 42 60 4 98 42Z" fill="rgba(22,21,26,.28)" filter="url(#brand-soft)" transform="translate(-2 4)"/><path d="M60 0V34a6 6 0 0 0 6 6H100Z" fill="url(#brand-flap)"/><circle cx="37" cy="63" r="19" fill="#16151A"/></svg>
+    <div class="wm"><b>折角</b><small>FOLLOWS</small></div>
+  </a>
+  <div class="plats" id="plats" role="group" aria-label="平台"></div>
+  <div class="pins" id="pins"></div>
+  <div class="sec"><span>分类</span><div class="sort" id="catSort"><button class="sortbtn" aria-haspopup="menu" aria-expanded="false"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg><span class="lab"></span><svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="menu" role="menu" aria-label="分类排序"><div class="mh">分类排序</div><button role="menuitemradio" data-val="count" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>账号数</b><small>从多到少</small></button><button role="menuitemradio" data-val="custom" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>自定义顺序</b><small>拖动分类调整，各设备同步</small></button></div></div></div>
+  <nav class="lib" id="cats" aria-label="分类"></nav>
+  <button class="foot" id="sync" title="把 Notion 里的改动同步到网页"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></svg>从 Notion 同步<span class="ago num" id="ago"></span></button>
+</aside>
+<div class="panel" id="panel"><div class="inner">
+  <div class="head" id="head">
+    <label class="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="搜索账号" aria-label="搜索名称或简介"><kbd>/</kbd></label>
+    <div class="seg" id="tabs" role="tablist" aria-label="收藏与喜欢" hidden></div>
+    <span class="spacer"></span>
+    <div class="seg" id="mode" role="group" aria-label="切换博主与内容"><button data-m="follows" aria-pressed="true">博主</button><button data-m="videos" aria-pressed="false">内容</button></div>
+    <div class="sort" id="arrange"><button class="sortbtn" aria-haspopup="menu" aria-expanded="false"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg><span class="lab"></span><svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="menu" role="menu" aria-label="账号排序"><div class="mh">账号排序</div><button role="menuitemradio" data-val="follow" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>关注先后</b><small>最近关注的在前</small></button><button role="menuitemradio" data-val="band" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>粉丝数</b><small>按粉丝量分档显示</small></button><button role="menuitemradio" data-val="name" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>名称</b><small>按拼音从 A 到 Z，不分档</small></button></div></div>
+  </div>
+  <main id="list"></main>
+  <div class="sentinel" id="sentinel"></div>
+</div></div>
+<div class="menu cardmenu" id="cardMenu" role="menu" aria-label="账号操作"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+// 数据库入口，只在没有任何账号的空状态里出现
+const DB_URL = ""; // 你的博主数据库的 Notion 链接，填了空状态里会出现「打开数据库」按钮
+// 平台：网址按平台分，/douyin 是博主，/douyin/collect 收藏，/douyin/like 喜欢。
+// 每个平台一组 Notion 数据库、各自的数据文件，点「从 Notion 同步」只同步当前平台。有数据库的平台与 src/platforms.mjs 一致，其余先列出、按钮不可点
+// 按钮上用英文名
+const PLATFORM_LIST = [["douyin", "Douyin"], ["wechat", "WeChat"], ["x", "X"], ["bilibili", "Bilibili"]];
+const ENABLED = new Set(["douyin", "wechat"]);
+// 英文名或中文名都认（旧版本在本机和旧网址里记的是中文名）
+const slugOf = (name) => PLATFORM_LIST.find(([slug, label]) => name === slug || name === label)?.[0];
+const platName = (slug) => PLATFORM_LIST.find(([s]) => s === slug)?.[1] ?? slug;
+// 当前平台的数据文件（creators 博主、videos 内容），由 GitHub Actions 从 Notion 同步生成并提交进仓库，短键名见 scripts/。
+// 经 Worker 读仓库里最新的一份；Worker 本身出错时退回最后一次部署时打包的那份
+const dataUrl = (file) => `/api/${state.plat}/${file}`;
+const bundledUrl = (file) => `/data/${state.plat}/${file}.json`;
+// 写入接口：Worker 先核验 Cloudflare Access 登录凭证，再写 Notion
+const API = "/api";
+// 快照本就是同步生成的，切回窗口时间隔太短再请求也拿不到新数据
+const REFRESH_AFTER_MS = 30000;
+// 网页上的改动写进 Notion 后，要等它同步进数据文件；这段时间先按本机记录显示，过久没回来就以快照为准
+const PENDING_TTL_MS = 30 * 60000;
+// 点「从 Notion 同步」后隔这么久查一次进度；超过 SYNC_GIVEUP_MS 还没结束就不再等。
+// 「没有启动」要持续 SYNC_NOT_STARTED_MS 才算：启动后到 GitHub 建出运行之间有几秒查不到
+const SYNC_POLL_MS = 5000, SYNC_GIVEUP_MS = 10 * 60000, SYNC_NOT_STARTED_MS = 30000;
+// 同步成功后数据还没换成新的时，隔这么久再读，最多读这么多次
+const SYNC_RELOAD_MS = 3000, SYNC_RELOADS = 5;
+const BANDS = [["百万粉丝以上",1e6],["十万到百万",1e5],["一万到十万",1e4],["一万以下",0]];
+// 新关注、取关都只看 30 天内；判断标准与 Notion「近期关注」「近期取关」字段一致
+const ALL = "全部", STAR = "特别关注", NEW = "近期关注", RECENT = "近期取关", RECENT_DAYS = 30;
+// 这两组按日期排，不分档，也不提供按名称排
+const DATED = new Set([NEW, RECENT]);
+// 一万张卡全部渲染会卡，按块追加，滚到附近才生成
+const CHUNK = 96;
+const byName = new Intl.Collator("zh-Hans-CN-u-co-pinyin").compare;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fans = (n) => n >= 1e8 ? (n/1e8).toFixed(1).replace(/\.0$/,"") + " 亿" : n >= 1e4 ? (n/1e4).toFixed(1).replace(/\.0$/,"") + " 万" : n ? String(n) : "";
+const img = (a) => a ? `<img src="${esc(a)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "<i></i>";
+// 取关日期、关注日期带时刻的按本机时区取日期；只有日期的（导入时只填了日期）直接截取
+const mmdd = (s) => { if (s.length > 10) { const t = new Date(s); return `${t.getMonth() + 1}月${t.getDate()}日`; } return `${+s.slice(5,7)}月${+s.slice(8,10)}日`; };
+// 本地时间的「10月2日 18:54」
+const stamp = (iso) => { const t = new Date(iso); return `${t.getMonth() + 1}月${t.getDate()}日 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`; };
+// 本地日期 YYYY-MM-DD
+const today = () => new Date().toLocaleDateString("sv-SE");
+// 本地时间带时区，如 2026-10-03T14:05:09-05:00，记取关、恢复关注的精确时刻，近期取关、近期关注按它排序
+const nowLocal = () => { const t = new Date(), off = -t.getTimezoneOffset(), pad = (n) => String(Math.trunc(Math.abs(n))).padStart(2, "0"); return `${today()}T${t.toTimeString().slice(0, 8)}${off < 0 ? "-" : "+"}${pad(off / 60)}:${pad(off % 60)}`; };
+const $ = (id) => document.getElementById(id);
+// 侧栏分类排序菜单的原样，微信页换成公众号的排法后据此换回
+const CAT_SORT_MENU = $("catSort").querySelector(".menu").innerHTML;
+const STAR_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3.2 2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9Z"/></svg>`;
+const MORE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`;
+const CHECK_ICON = `<svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+const GRIP_ICON = `<svg class="grip" width="12" height="16" viewBox="0 0 12 16" fill="currentColor" aria-hidden="true"><circle cx="3.5" cy="3" r="1.3"/><circle cx="8.5" cy="3" r="1.3"/><circle cx="3.5" cy="8" r="1.3"/><circle cx="8.5" cy="8" r="1.3"/><circle cx="3.5" cy="13" r="1.3"/><circle cx="8.5" cy="13" r="1.3"/></svg>`;
+const store = {
+  get: (k, d) => JSON.parse(localStorage.getItem("follows." + k) ?? "null") ?? d,
+  set: (k, v) => v === null ? localStorage.removeItem("follows." + k) : localStorage.setItem("follows." + k, JSON.stringify(v)),
+};
+// 两项排列偏好只记在本机；分类的自定义顺序存回 Notion，各设备一致
+const state = {view: ALL, plat: ENABLED.has(slugOf(store.get("plat", "douyin"))) ? slugOf(store.get("plat", "douyin")) : "douyin", q: "", catSort: store.get("catSort", "custom"), arrange: store.get("arrange", "band"), mode: store.get("mode", "follows")};
+// 视频页（喜欢与收藏）：两个 Notion 数据库各自独立，同一视频在两边各有一条记录（L 喜欢、K 收藏），分类、星标、取消各管各的。
+// 数据单独一份 videos.json，切到「内容」时才读；短键名见 scripts/sync-videos.mjs
+const LIBS = {L: "喜欢", K: "收藏"};
+const V = {ALL: "全部视频", FOLDERS: "收藏夹", NEW: "近期新增", RECENT: "近期取消"};
+const LIKE_BANDS = [["十万赞以上",1e5],["一万到十万赞",1e4],["一千到一万赞",1e3],["一千赞以下",0]];
+// lib 是看收藏还是喜欢（两个库各自独立，页头标签切换）；folder 是收藏夹里点进的那一个
+state.v = {view: V.ALL, arrange: store.get("varrange", "time"), lib: store.get("vlib", "K"), folder: null};
+let vdata = null, vLoading = null, vById = new Map();
+// 微信：只有一个库，公众号文章，数据在 wechat/videos.json（短键名见 scripts/sync-wechat.mjs）。
+// 网页上能改标题、改公众号（单篇或整个号改名）、删除文章，经 /api/wechat/* 写回 Notion。
+// 只有一页文章，不分「博主、内容」；侧栏的公众号像抖音的分类。view 是入口，acct 是侧栏选中的公众号，catSort 是公众号的排法
+const W = {ALL: "全部收藏", NEW: "近期收藏"};
+state.w = {view: W.ALL, acct: null, catSort: store.get("wcatSort", "count")};
+let wdata = null, lastWText = "";
+const isWx = () => state.plat === "wechat";
+// 视频页的本机记录：页面 ID（某一边的记录）→ 网页上改过、还没同步进 videos.json 的字段和改动时间，规则同关注页
+const vpending = new Map(Object.entries(store.get("vpending", {})));
+const saveVPending = () => store.set("vpending", Object.fromEntries(vpending));
+// 网页上新建、还没同步进 videos.json 的收藏夹：名字和建的时间
+let vfolderPending = store.get("vfolders", []);
+const curView = () => isWx() ? state.w.acct ?? state.w.view : state.mode === "videos" ? state.v.view : state.view;
+// 本机记录：页面 ID → 网页上改过、还没同步进数据文件 的字段（s 星标、c 分类、x 已取关、d 取关日期、j 关注日期）和改动时间
+const pending = new Map(Object.entries(store.get("pending", {})));
+// 旧版本只记星标
+for (const [id, p] of Object.entries(store.get("pendingStars", {}))) if (!pending.has(id)) pending.set(id, {s: p.on, at: p.at});
+store.set("pendingStars", null);
+const savePending = () => store.set("pending", Object.fromEntries(pending));
+let pendingOrder = store.get("pendingOrder", null);
+let updated = null, dataSource = "github", data, byId = new Map(), counts = {}, covers = {}, queue = [], done = 0, lastFetch = 0, lastText = "", typing, toastTimer, dragged = null, menuFor = null, syncPoll = null;
+
+
+// 封面取粉丝最多、且有头像的前四位，不足四张用底色补位
+function cover(list) {
+  const top = list.filter((d) => d.a).slice(0, 4);
+  return `<span class="cover" aria-hidden="true">${top.map((d) => img(d.a)).join("")}${"<i></i>".repeat(4 - top.length)}</span>`;
+}
+const starBtn = (d) => d.x ? "" : `<button class="star" data-id="${d.id}" aria-pressed="${d.s}" aria-label="${d.s ? "取消特别关注" : "设为特别关注"}">${STAR_ICON}</button>`;
+const moreBtn = (d) => `<button class="more" data-id="${d.id}" aria-haspopup="menu" aria-expanded="false" aria-label="改分类、取关">${MORE_ICON}</button>`;
+// 卡片本身不是链接：名称上的链接用伪元素铺满整张卡，星标和菜单按钮叠在上面，避免按钮嵌在链接里
+function card(d) {
+  const note = d.x ? `<span class="when">${mmdd(d.d)}取关</span>` : state.view === NEW && d.j ? `<span class="when new">${mmdd(d.j)}关注</span>` : "";
+  return `<div class="card${d.x ? " gone" : ""}" data-id="${d.id}" style="${palVars(d.c || "内容不明")}">
+  <div class="av">${d.a ? img(d.a) : `<div class="ph">${esc([...d.n][0])}</div>`}</div>
+  <div class="meta"><div class="top"><a class="name hit" href="${esc(d.u || "#")}" target="_blank" rel="noopener">${esc(d.n)}</a><span class="fans num">${fans(d.f)}</span>${starBtn(d)}${moreBtn(d)}</div>
+  ${note}<div class="bio">${esc(d.b)}</div>${d.c ? `<span class="k">${esc(d.c)}</span>` : ""}</div></div>`;
+}
+
+function show(html) { $("list").innerHTML = html; }
+// 登录过期时重试没用，按钮换成刷新页面，刷新会转到登录页
+function showError(err) {
+  const hint = err.login ? "" : "<p>暂时读不到账号数据，请稍后重试。</p>";
+  show(`<div class="state"><h2>数据读取失败</h2>${hint}<p class="err">${esc(err.message)}</p><button class="btn" id="retry">${err.login ? "刷新页面" : "重试"}</button></div>`);
+  $("retry").onclick = () => err.login ? location.reload() : load(false);
+}
+function toast(msg) {
+  $("toast").textContent = msg;
+  $("toast").classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("on"), 4000);
+}
+// 写入接口返回的错误原因换成中文，其余原样显示，便于排查
+const API_ERRORS = {
+  "not signed in": "登录已过期，请刷新页面重新登录",
+  "categories changed, sync from Notion first": "Notion 里的分类已经变了，请先点「从 Notion 同步」",
+  "categories changed, reload": "Notion 里的分类已经变了，请先点「从 Notion 同步」",
+  "not a follows row": "这个账号已经不在 Notion 的数据库里了",
+  "not a video row": "这个视频已经不在 Notion 的数据库里了",
+  "not an article row": "这篇文章已经不在 Notion 的公众号库里了",
+  "folders changed, sync from Notion first": "Notion 里的收藏夹已经变了，请先点「从 Notion 同步」",
+  "folder exists": "已经有同名的收藏夹",
+  "bad date": "日期不对，请检查电脑的日期",
+  "forbidden": "请求来源不对，请在本站页面上操作",
+};
+// 本站的数据与接口请求都走这里。登录过期时 Cloudflare Access 不放行：带 X-Requested-With 时回 401，
+// 不带时 302 跳到另一个域名的登录页，fetch 只能报网络错误、看不出原因。不跟随跳转，两种都按登录过期处理
+function api(url, init = {}) {
+  return fetch(url, {cache: "no-store", redirect: "manual", ...init, headers: {"x-requested-with": "XMLHttpRequest", ...init.headers}})
+    .then((res) => {
+      if (res.type === "opaqueredirect" || res.status === 401) throw Object.assign(new Error(API_ERRORS["not signed in"]), {login: true});
+      return res;
+    });
+}
+function post(path, body) {
+  return api(API + path, {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify(body)})
+    .then(async (res) => {
+      if (res.ok) return res.json();
+      const type = res.headers.get("content-type") ?? "";
+      const why = type.includes("json") ? (await res.json()).error ?? `HTTP ${res.status}` : `HTTP ${res.status}`;
+      throw new Error(API_ERRORS[why] ?? why);
+    });
+}
+
+function inView(d) {
+  switch (state.view) {
+    case RECENT: return d.x;
+    case NEW: return !d.x && d.j >= data.cutoff;
+    case STAR: return !d.x && d.s;
+    case ALL: return !d.x;
+    default: return !d.x && d.c === state.view;
+  }
+}
+function markCurrent() {
+  const searching = Boolean(state.q);
+  document.querySelectorAll("[data-v]").forEach((b) => b.setAttribute("aria-current", String(!searching && b.dataset.v === curView())));
+}
+
+function render() {
+  if (isWx()) return renderW();
+  if (state.mode === "videos") return renderV();
+  queue = []; done = 0;
+  const searching = Boolean(state.q);
+  // 搜索在全部账号里找，与当前停在哪个分类无关
+  const pool = data.items.filter((d) => searching ? d.text.includes(state.q) : inView(d));
+  const dated = !searching && DATED.has(state.view);
+  $("arrange").hidden = dated;
+  markCurrent();
+  if (!data.items.length) {
+    return show(`<div class="state"><h2>还没有关注的账号</h2><p>在 Notion「折角」页的数据库里新增账号后，点侧栏的「从 Notion 同步」，这里就会出现卡片。</p>${DB_URL ? `<a class="btn" href="${DB_URL}" target="_blank" rel="noopener">打开数据库 ↗</a>` : ""}</div>`);
+  }
+  if (!pool.length) {
+    const why = searching ? "换个关键词试试，名称和简介都会搜到。"
+      : {[RECENT]: "最近 30 天没有取关任何账号。", [NEW]: "最近 30 天没有新关注的账号。", [STAR]: "在任意卡片右上角点星标，账号就会出现在这里。"}[state.view] ?? "这个分类下还没有账号。";
+    return show(`<div class="state"><h2>${searching ? "没有匹配的账号" : "这里还是空的"}</h2><p>${why}</p></div>`);
+  }
+  queue = [];
+  if (dated) {
+    // 时刻带时区，按时刻比较，不按字符串；旧的只有日期的记录当作当天零点。时刻相同的保持 数据文件 里粉丝数从多到少的顺序
+    const key = state.view === RECENT ? "d" : "j";
+    queue.push({band: `30 天内，按${state.view === RECENT ? "取关" : "关注"}时间从近到远`, n: pool.length}, ...pool.sort((a, b) => (Date.parse(b[key]) || 0) - (Date.parse(a[key]) || 0)));
+  } else if (state.arrange === "name") {
+    queue.push(...pool.sort((a, b) => byName(a.n, b.n)));
+  } else if (state.arrange === "follow") {
+    // 按关注日期从近到远，同一时刻再按 Notion「关注顺序」从新到旧。关注日期是导入时填的，
+    // 网页上恢复关注、重抓新增的记当时的时刻；没有日期的（已取关、不在抖音名单里）排最后，保持数据文件里粉丝数从多到少的顺序
+    queue.push(...pool.sort((a, b) => (Date.parse(b.j) || 0) - (Date.parse(a.j) || 0) || (b.o ?? 0) - (a.o ?? 0)));
+  } else {
+    BANDS.forEach(([name, min], i) => {
+      const max = i ? BANDS[i - 1][1] : Infinity;
+      const g = pool.filter((d) => d.f >= min && d.f < max);
+      if (g.length) queue.push({band: name, n: g.length}, ...g);
+    });
+  }
+  show(""); done = 0; more();
+}
+function more() {
+  let html = "", grid = false, taken = 0;
+  while (done < queue.length && taken < CHUNK) {
+    const it = queue[done++];
+    if (it.band) { if (grid) { html += "</div>"; grid = false; } html += `<div class="band"><h2>${esc(it.band)}</h2><span class="n num">${it.n.toLocaleString()}</span><hr></div>`; }
+    else { if (!grid) { html += it.v ? `<div class="grid vgrid">` : it.wt ? `<div class="grid wgrid">` : `<div class="grid">`; grid = true; } html += it.v ? vcard(it) : it.wt ? wcard(it) : card(it); taken++; }
+  }
+  if (grid) html += "</div>";
+  // 接续上一块时，新卡片并进最后一个网格，而不是另起一个
+  const tmp = document.createElement("div"); tmp.innerHTML = html;
+  const last = $("list").lastElementChild;
+  if (last?.classList.contains("grid") && tmp.firstElementChild?.classList.contains("grid")) { last.append(...tmp.firstElementChild.children); tmp.firstElementChild.remove(); }
+  $("list").append(...tmp.children);
+}
+
+// ===== 视频页 =====
+const HEART = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.6s-8-4.7-8-10.6A4.6 4.6 0 0 1 12 7.1a4.6 4.6 0 0 1 8 2.9c0 5.9-8 10.6-8 10.6Z"/></svg>`;
+const MARK = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3.5h12v17.2l-6-4.1-6 4.1Z"/></svg>`;
+const PIN_ICON = {
+  [V.ALL]: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8Z" fill="currentColor"/></svg>`,
+  [V.NEW]: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>`,
+  [V.RECENT]: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/></svg>`,
+};
+// 视频分类的线条图标，24×24、描边，手绘成同一套笔画；名单之外的分类用标签图标，收藏夹用文件夹图标
+const CAT_ICON = {
+  "人工智能": '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1-5.1-1.9 5.1-1.9Z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8Z"/>',
+  "编程开发": '<path d="m8.5 7.5-4.5 4.5 4.5 4.5"/><path d="m15.5 7.5 4.5 4.5-4.5 4.5"/><path d="m13.5 5-3 14"/>',
+  "数码硬件": '<rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M10.5 18h3"/>',
+  "心理成长": '<path d="M12 20.5V11"/><path d="M12 13c0-3.5-2.5-6-6.5-6 0 3.6 2.6 6 6.5 6Z"/><path d="M12 11c0-3.4 2.4-6 6.5-6 0 3.5-2.6 6-6.5 6Z"/>',
+  "人生感悟": '<path d="M5 18.5c3.5-1 5.5-4 5.5-8.5V5.5H5.5V11H9"/><path d="M14 18.5c3.5-1 5.5-4 5.5-8.5V5.5h-5V11H18"/>',
+  "哲学思想": '<path d="M9 17.5h6"/><path d="M10 20.5h4"/><path d="M8.5 14.5a6 6 0 1 1 7 0c-.6.5-1 1.2-1 2v1h-5v-1c0-.8-.4-1.5-1-2Z"/>',
+  "历史人文": '<path d="M3.5 9.5 12 4.5l8.5 5Z"/><path d="M4.5 20.5h15"/><path d="M6.5 10v8"/><path d="M10 10v8"/><path d="M14 10v8"/><path d="M17.5 10v8"/>',
+  "时事国际": '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.4 2.3 3.6 5.2 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.2-3.6-8.5S9.6 5.8 12 3.5Z"/>',
+  "财经投资": '<path d="M4 19.5h16"/><path d="m4.5 15 4.5-4.5 3.5 3 7-7"/><path d="M15 6.5h4.5V11"/>',
+  "科学科普": '<path d="M9.5 3.5h5"/><path d="M10.5 3.5v6L5 18.5c-.6 1 .1 2 1.2 2h11.6c1.1 0 1.8-1 1.2-2l-5.5-9v-6"/><path d="M7.5 14.5h9"/>',
+  "语言学习": '<path d="M4 5.5h10v7H8.5L5.5 15v-2.5H4Z"/><path d="M14 9.5h6v7h-1.5V19L15.5 16.5H10v-4"/>',
+  "读书文学": '<path d="M12 6.5c-2-1.5-4.8-2-8-1.5v13c3.2-.5 6 0 8 1.5"/><path d="M12 6.5c2-1.5 4.8-2 8-1.5v13c-3.2-.5-6 0-8 1.5Z"/>',
+  "职场求职": '<rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V5.5c0-.6.4-1 1-1h4c.6 0 1 .4 1 1v2"/><path d="M3.5 12.5h17"/>',
+  "法律常识": '<path d="M12 4v16"/><path d="M7.5 20h9"/><path d="M5 7.5h14"/><path d="M5 7.5 2.5 13a3 3 0 0 0 5 0Z"/><path d="M19 7.5 16.5 13a3 3 0 0 0 5 0Z"/>',
+  "健康医疗": '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8"/><path d="M8 12h8"/>',
+  "健身康复": '<path d="M6.5 8v8"/><path d="M17.5 8v8"/><path d="M3.5 10v4"/><path d="M20.5 10v4"/><path d="M6.5 12h11"/>',
+  "美食烹饪": '<path d="M3.5 12.5h17c0 4.4-3.8 7-8.5 7s-8.5-2.6-8.5-7Z"/><path d="M9 9.5c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><path d="M14 9.5c0-1.5 1-1.5 1-3s-1-1.5-1-3"/>',
+  "音乐欣赏": '<path d="M9 18V5.5l10-2v12.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
+  "影视娱乐": '<rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M3.5 9 18.5 4.5l1 3.5"/><path d="m8 7.7 2.3 3.6"/><path d="m13 6.2 2.3 3.6"/>',
+  "设计摄影": '<path d="M4 8.5c0-.6.4-1 1-1h2.5l1.5-2.5h6l1.5 2.5H19c.6 0 1 .4 1 1V18c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1Z"/><circle cx="12" cy="13" r="3.5"/>',
+  "穿搭美妆": '<path d="M12 7.5a2 2 0 1 1 2-2c0 1-.8 1.4-2 2.2v1.3"/><path d="M12 9 3.5 16.5c-.6.5-.2 1.5.6 1.5h15.8c.8 0 1.2-1 .6-1.5Z"/>',
+  "颜值写真": '<rect x="4.5" y="3.5" width="15" height="17" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M7.5 18c.8-2.3 2.4-3.5 4.5-3.5s3.7 1.2 4.5 3.5"/>',
+  "幽默搞笑": '<circle cx="12" cy="12" r="8.5"/><path d="M8 14c.8 1.6 2.2 2.5 4 2.5s3.2-.9 4-2.5Z"/><path d="M8.5 10c.4-.7.9-1 1.5-1s1.1.3 1.5 1"/><path d="M12.5 10c.4-.7.9-1 1.5-1s1.1.3 1.5 1"/>',
+  "异国见闻": '<path d="M3.5 13.5 10 11V5.5c0-1 .9-2 2-2s2 1 2 2V11l6.5 2.5v2L14 14v4l2 1.5v1.5l-4-1-4 1v-1.5l2-1.5v-4l-6.5 1.5Z"/>',
+  "旅行风光": '<path d="M2.5 19.5 9 9l3.5 5.5L15 11l6.5 8.5Z"/><circle cx="17" cy="6" r="2"/>',
+  "家居装修": '<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/>',
+  "好物种草": '<path d="M5 8h14l-1 12.5H6Z"/><path d="M9 10.5V6.5a3 3 0 0 1 6 0v4"/>',
+  "体育赛事": '<path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 5.5H4.5c0 2.5 1.4 4 3.6 4"/><path d="M16 5.5h3.5c0 2.5-1.4 4-3.6 4"/><path d="M12 13v3.5"/><path d="M8.5 20h7l-1-3.5h-5Z"/>',
+  "汽车出行": '<path d="M4 15.5V12l2-5c.2-.6.8-1 1.4-1h9.2c.6 0 1.2.4 1.4 1l2 5v3.5c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1Z"/><path d="M4 12h16"/><circle cx="7.5" cy="14" r=".6" fill="currentColor"/><circle cx="16.5" cy="14" r=".6" fill="currentColor"/><path d="M6 16.5v2"/><path d="M18 16.5v2"/>',
+  "育儿教育": '<rect x="3.5" y="12" width="8" height="8" rx="1"/><rect x="12.5" y="12" width="8" height="8" rx="1"/><path d="M12 3.5 16 10H8Z"/>',
+  "眼镜验配": '<circle cx="7" cy="14" r="3.5"/><circle cx="17" cy="14" r="3.5"/><path d="M10.5 14c.5-.8 1-1 1.5-1s1 .2 1.5 1"/><path d="M3.5 14 5 7.5c.2-.6.6-1 1.2-1H7"/><path d="M20.5 14 19 7.5c-.2-.6-.6-1-1.2-1H17"/>',
+  "内容不明": '<circle cx="12" cy="12" r="8.5" stroke-dasharray="3 2.6"/><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor"/>',
+};
+const OTHER_ICON = '<path d="M3.5 12.5V5c0-.8.7-1.5 1.5-1.5h7.5l8 8-9 9Z"/><circle cx="8" cy="8" r="1.4"/>';
+const FOLDER_ICON = '<path d="M3.5 7c0-.8.7-1.5 1.5-1.5h4.5l2 2.5H19c.8 0 1.5.7 1.5 1.5V18c0 .8-.7 1.5-1.5 1.5H5c-.8 0-1.5-.7-1.5-1.5Z"/>';
+const svgIcon = (paths, size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+PIN_ICON[V.FOLDERS] = svgIcon(FOLDER_ICON);
+const FOLLOW_PIN_ICON = {
+  [ALL]: svgIcon('<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
+  [STAR]: svgIcon('<path d="m12 3.2 2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9Z"/>'),
+  [NEW]: PIN_ICON[V.NEW], [RECENT]: PIN_ICON[V.RECENT],
+};
+const TAB_ICON = {K: svgIcon('<path d="M6 3.5h12v17.2l-6-4.1-6 4.1Z"/>', 13), L: svgIcon('<path d="M12 20.6s-8-4.7-8-10.6A4.6 4.6 0 0 1 12 7.1a4.6 4.6 0 0 1 8 2.9c0 5.9-8 10.6-8 10.6Z"/>', 13)};
+// 每个分类一组配色：浅色纸张底、点缀色、文字色，底色明度一致，只换色相
+const PAL = {
+  "人工智能": ["#E4E6FA", "#4B57C9", "#1B1F48"], "财经投资": ["#DDEBDF", "#2E7A49", "#12301C"], "心理成长": ["#E0E9D6", "#5A8250", "#1E2A19"],
+  "人生感悟": ["#F1E6D5", "#B4653A", "#3A2817"], "数码硬件": ["#DFE7EF", "#3B6D9C", "#152434"], "语言学习": ["#E9E0F3", "#7650BA", "#2A1E3D"],
+  "历史人文": ["#F2E0D7", "#A9452F", "#3A1610"], "时事国际": ["#DDE6F1", "#2E5D93", "#10213A"], "异国见闻": ["#D5EAE7", "#24766F", "#0F2E2B"],
+  "科学科普": ["#D8ECEA", "#1E7D76", "#0E2E2C"], "好物种草": ["#F6E0D7", "#C2532D", "#3D1C10"], "健康医疗": ["#DDEFE5", "#338A68", "#132E22"],
+  "职场求职": ["#EEE8D9", "#A98128", "#2C2410"], "健身康复": ["#E7F0D4", "#5F8219", "#22300A"], "影视娱乐": ["#F2DFEC", "#A43C7A", "#36122A"],
+  "音乐欣赏": ["#F5DDE6", "#AA4068", "#3B1424"], "编程开发": ["#DEEBE2", "#2C8553", "#14261A"], "读书文学": ["#EFE8DC", "#7A5C3E", "#2B2117"],
+  "哲学思想": ["#E8E1F4", "#6A4DB0", "#251A3D"], "法律常识": ["#E5E4DD", "#4E5A6E", "#1F242C"], "设计摄影": ["#F3EADC", "#C9523A", "#2A1D17"],
+  "穿搭美妆": ["#F7E3E5", "#BC495E", "#3A1219"], "颜值写真": ["#F6E2EA", "#C04A77", "#3A1323"], "幽默搞笑": ["#F7EBC9", "#B57F0E", "#3A2A06"],
+  "旅行风光": ["#DCEAF2", "#2C739B", "#10283A"], "家居装修": ["#EEE5D8", "#8B6B4A", "#2E2318"], "体育赛事": ["#E2ECD8", "#4B7829", "#1B2A0F"],
+  "汽车出行": ["#E7EAEF", "#CF5D28", "#1C232C"], "育儿教育": ["#F6ECD3", "#BD7520", "#35240B"], "眼镜验配": ["#E3E7ED", "#3D5C86", "#1A2433"],
+  "美食烹饪": ["#F6E6D3", "#C06A1F", "#3A220B"], "内容不明": ["#E8E5E0", "#8B857B", "#2B2824"]};
+// 博主分类借用意思相近的内容分类配色，两页同一套颜色；两边名单之外的分类按名字算一个色相
+const FOLLOW_PAL = {"出海华人": "异国见闻", "外籍博主": "异国见闻", "医疗健康": "健康医疗", "时事军事": "时事国际", "财经商业": "财经投资", "科技数码": "数码硬件",
+  "知识科普": "科学科普", "情感心理": "心理成长", "旅行探索": "旅行风光", "美食餐饮": "美食烹饪", "运动健身": "健身康复", "时尚美业": "穿搭美妆", "养生门店": "健康医疗",
+  "品牌官方": "好物种草", "工厂外贸": "家居装修", "本地商家": "美食烹饪", "电商带货": "好物种草", "海外商家": "异国见闻", "个人日常": "内容不明", "人气博主": "颜值写真",
+  "生活分享": "人生感悟", "颜值才艺": "颜值写真", "职业日常": "职场求职", "家庭生活": "育儿教育"};
+const pal = (c) => PAL[c] ?? (() => { const h = hueOf(c); return [`hsl(${h} 30% 88%)`, `hsl(${h} 45% 38%)`, `hsl(${h} 35% 14%)`]; })();
+const palVars = (c) => { const [bg, ac, ink] = pal(FOLLOW_PAL[c] ?? c); return `--bg:${bg};--ac:${ac};--ink:${ink}`; };
+// 几何图形：每个分类固定一种，压在卡片右上角，像丛书封面上的图案
+const SHAPES = [
+  (w, h) => `<circle cx="${w * .92}" cy="${h * .08}" r="${w * .42}" fill="currentColor" opacity=".9"/>`,
+  (w, h) => [0, 1, 2, 3, 4].map((i) => `<circle cx="${w}" cy="0" r="${w * .25 + i * w * .14}" fill="none" stroke="currentColor" stroke-width="1.4" opacity="${.7 - i * .1}"/>`).join(""),
+  (w, h) => `<path d="M${w} 0 A${w * .36} ${w * .36} 0 0 0 ${w} ${w * .72}" fill="currentColor" opacity=".85"/><circle cx="${w * .5}" cy="${w * .16}" r="${w * .05}" fill="currentColor"/>`,
+  (w, h) => Array.from({length: 9}, (_, i) => `<line x1="${w * .45 + i * 14}" y1="-10" x2="${w * .45 + i * 14 - 90}" y2="${h * .42}" stroke="currentColor" stroke-width="5" opacity=".5"/>`).join(""),
+  (w, h) => Array.from({length: 30}, (_, i) => `<circle cx="${w * .5 + (i % 6) * 16}" cy="${18 + Math.floor(i / 6) * 16}" r="2.4" fill="currentColor" opacity=".75"/>`).join(""),
+  (w, h) => `<rect x="${w * .58}" y="${-w * .1}" width="${w * .5}" height="${w * .5}" rx="${w * .08}" transform="rotate(18 ${w * .8} ${w * .15})" fill="currentColor" opacity=".85"/>`,
+  (w, h) => `<path d="M${w * .3} 0 L${w} 0 L${w} ${h * .45} Z" fill="currentColor" opacity=".8"/>`,
+  (w, h) => `<circle cx="${w * .72}" cy="${h * .16}" r="${w * .2}" fill="none" stroke="currentColor" stroke-width="10" opacity=".75"/><circle cx="${w * .95}" cy="${h * .02}" r="${w * .12}" fill="currentColor" opacity=".6"/>`,
+];
+const motif = (c, w = 212, h = 283) => `<svg class="mo" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMaxYMin slice" aria-hidden="true">${SHAPES[(hueOf(c) * 7 + c.length) % SHAPES.length](w, h)}</svg>`;
+// 分类色相：配色表之外的分类按它取色，几何图形也按它挑
+const CAT_HUE = {"人工智能": 255, "编程开发": 222, "数码硬件": 200, "心理成长": 150, "人生感悟": 28, "哲学思想": 275, "历史人文": 22, "时事国际": 207,
+  "财经投资": 140, "科学科普": 186, "语言学习": 300, "读书文学": 12, "职场求职": 232, "法律常识": 246, "健康医疗": 162, "健身康复": 96, "美食烹饪": 36,
+  "音乐欣赏": 325, "影视娱乐": 345, "设计摄影": 286, "穿搭美妆": 332, "颜值写真": 356, "幽默搞笑": 46, "异国见闻": 192, "旅行风光": 172, "家居装修": 40,
+  "好物种草": 18, "体育赛事": 112, "汽车出行": 212, "育儿教育": 58, "眼镜验配": 238};
+const hueOf = (name) => CAT_HUE[name] ?? [...name].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 360, 7);
+// 收藏夹按名字配图标与颜色，认不出的用文件夹
+const FOLDER_ART = [[/音乐|歌|曲/, "音乐欣赏"], [/剁手|购|买|好物|种草/, "好物种草"], [/运动|健身|锻炼|跑/, "健身康复"], [/吃|食|菜|饭/, "美食烹饪"], [/书|读/, "读书文学"], [/旅|游/, "旅行风光"]];
+const folderArt = (name) => { const hit = FOLDER_ART.find(([re]) => re.test(name)); return hit ? {paths: CAT_ICON[hit[1]], key: hit[1]} : {paths: FOLDER_ICON, key: name}; };
+// 视频没有头像可拼，侧栏分类用分类底色加线条图标作封面（手绘图标，不用汉字）
+const tile = (c) => `<span class="tile" style="${palVars(c)}" aria-hidden="true">${svgIcon(CAT_ICON[c] ?? OTHER_ICON, 17)}</span>`;
+// 卡片上的文案去掉话题标签；只有话题标签的保留原文
+const caption = (d) => esc((d.t ?? "").replace(/#[^\s#]+/g, "").replace(/\s+/g, " ").trim() || d.t || "（无文案）");
+// 当前看的是哪个库：页头「收藏、喜欢」标签切换
+const libsOf = (d) => [state.v.lib].filter((k) => d[k]);
+function vIn(d, view = state.v.view) {
+  const ks = libsOf(d), live = ks.filter((k) => !d[k].x);
+  if (view === V.RECENT) return ks.some((k) => d[k].x && (d[k].d ?? "") >= vdata.cutoff);
+  if (view === V.NEW) return live.some((k) => (d[k].j ?? "") >= vdata.cutoff);
+  // 收藏夹入口：标了星或放进任一收藏夹的收藏。星标与收藏夹只在收藏里有
+  if (view === V.FOLDERS) return live.includes("K") && inFolders(d);
+  if (view === V.ALL) return live.length > 0;
+  return live.some((k) => d[k].c === view);
+}
+// 星标与收藏夹记在 d.F 上：Notion「收藏夹」数据库里这个视频的那份复制（id 页面 ID，s 星标，f 所在的收藏夹）。
+// 视频放进收藏夹后照样出现在全部视频和分类里；收藏夹库是另外复制一份，不是把视频挪走
+const STARRED = "星标";
+const STAR_PATH = '<path d="m12 3.2 2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9Z"/>';
+const inFolders = (d) => Boolean(d.F && (d.F.s || (d.F.f ?? []).length));
+const inFolder = (d, name) => name === STARRED ? Boolean(d.F?.s) : (d.F?.f ?? []).includes(name);
+const when = (d, key) => Math.max(0, ...libsOf(d).map((k) => Date.parse(d[k][key] ?? "") || 0));
+const vdate = (iso) => { const t = new Date(iso), y = t.getFullYear(); return `${y === new Date().getFullYear() ? "" : y + "年"}${t.getMonth() + 1}月${t.getDate()}日`; };
+const dur = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+function vcard(d) {
+  const lib = state.v.lib, rec = d[lib], c = rec.c || "内容不明", view = state.v.view;
+  // 同一视频也在另一个库里时，角上标一下
+  const other = lib === "K" ? "L" : "K", also = d[other] && !d[other].x;
+  const icon = also ? `<span class="libic ${other}" title="也在${LIBS[other]}里">${other === "L" ? HEART : MARK}</span>` : "";
+  const tail = view === V.RECENT ? `<span class="when">${vdate(new Date(when(d, "d")))}取消</span>` : view === V.NEW ? `<span class="when new">${vdate(new Date(when(d, "j")))}加入</span>` : `<span class="num">${d.lk ? "♥ " + fans(d.lk) : ""}</span>`;
+  const star = lib === "K" && !rec.x ? `<button class="star" data-vid="${d.v}" aria-pressed="${Boolean(d.F?.s)}" aria-label="${d.F?.s ? "取消星标" : "标星，放进收藏夹"}">${STAR_ICON}</button>` : "";
+  return `<div class="poster grain${rec.x ? " gone" : ""}" data-vid="${d.v}" style="${palVars(c)}">${motif(c)}
+  <div class="pt"><span class="c">${svgIcon(CAT_ICON[c] ?? OTHER_ICON, 12)}${esc(c)}</span>${icon}${star}<button class="more" data-vid="${d.v}" aria-haspopup="menu" aria-expanded="false" aria-label="改分类、取消">${MORE_ICON}</button></div>
+  <p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${caption(d)}</a></p>
+  <div class="m"><span class="au">${esc(d.a || "")}</span>${tail}</div></div>`;
+}
+// 收藏夹第一级：第一张是「星标」，然后是各个收藏夹（没有视频的也列出来），最后是「新建收藏夹」
+function folderTiles() {
+  const live = vdata.items.filter((d) => vIn(d, V.FOLDERS));
+  const card = (name, key, paths, n, kind) => `<button class="folder grain" data-folder="${esc(name)}" style="${palVars(key)}">${motif(key, 300, 178)}<span class="ic">${svgIcon(paths, 22)}</span><span><b>${esc(name)}</b><i>${kind} · ${n.toLocaleString()} 个视频</i></span></button>`;
+  return `<div class="folders">${card(STARRED, "幽默搞笑", STAR_PATH, live.filter((d) => d.F.s).length, "标了星的")}${vdata.folders.map((f) => {
+    const art = folderArt(f);
+    return card(f, art.key, art.paths, live.filter((d) => inFolder(d, f)).length, "收藏夹");
+  }).join("")}<button class="folder new" data-new>${FOLDER_SHAPE}<span class="plus">${svgIcon('<path d="M12 5v14M5 12h14"/>', 18)}</span><b>新建收藏夹</b></button></div>`;
+}
+// 空文件夹的轮廓，随卡片拉伸，虚线粗细不变
+const FOLDER_SHAPE = `<svg class="shape" viewBox="0 0 300 178" preserveAspectRatio="none" aria-hidden="true"><path d="M22 1.5h76c6 0 9 3 12 7l7 9h161c11 0 20.5 9 20.5 20.5v118c0 11-9.5 20.5-20.5 20.5H22C11 176.5 1.5 167 1.5 156V22C1.5 11 11 1.5 22 1.5Z" fill="rgba(255,255,255,.35)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"/></svg>`;
+// 新建收藏夹：轮廓里就地换成输入框，回车建好，Esc 或留空离开就放弃
+function editNewFolder(btn) {
+  btn.outerHTML = `<div class="folder new editing">${FOLDER_SHAPE}<input id="newFolder" maxlength="20" placeholder="收藏夹名字" aria-label="新收藏夹的名字"><i>回车创建，Esc 取消，最长 20 个字</i></div>`;
+  const input = $("newFolder");
+  input.focus();
+  input.onkeydown = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); render(); }
+    if (e.key !== "Enter" || e.isComposing) return;
+    e.preventDefault();
+    const name = input.value.trim();
+    // Notion 多选的选项名不能带英文逗号
+    const why = !name ? "名字不能为空" : name.includes(",") ? "名字里不能有英文逗号" : name === STARRED || vdata.folders.includes(name) ? "已经有同名的收藏夹" : "";
+    if (why) return toast(why);
+    createFolder(name);
+  };
+  input.onblur = () => { if (!input.value.trim()) setTimeout(render, 0); };
+}
+// 先在页面上出现，再写 Notion；写入失败就撤掉并提示。同步回来之前按本机记录显示
+function createFolder(name) {
+  vfolderPending.push({name, at: Date.now()}); store.set("vfolders", vfolderPending);
+  vdata.folders = [...vdata.folders, name];
+  render();
+  post("/video/folder/new", {platform: state.plat, name}).catch((err) => {
+    vfolderPending = vfolderPending.filter((p) => p.name !== name); store.set("vfolders", vfolderPending);
+    vdata.folders = vdata.folders.filter((f) => f !== name);
+    refresh(); toast(`收藏夹没有建好：${err.message}`);
+  });
+}
+// 收藏夹第二级列表上方的返回路径
+const crumb = (back, name, n, unit = "个") => `<div class="crumb"><button data-back>${esc(back)}</button>›<b>${esc(name)}</b><span class="num">${n.toLocaleString()} ${unit}</span></div>`;
+function renderV() {
+  if (!vdata) return show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  const searching = Boolean(state.q), view = state.v.view, folder = view === V.FOLDERS && !searching ? state.v.folder : null;
+  // 先清空滚动加载的队列：下面几种情况直接换掉整个列表，旧队列留着会被滚动接着追加进来
+  queue = []; done = 0;
+  buildTabs();
+  // 搜索在当前库的全部视频里找，与停在哪个分类无关
+  const pool = vdata.items.filter((d) => searching ? vIn(d, V.ALL) && d.text.includes(state.q) : folder ? vIn(d) && inFolder(d, folder) : vIn(d));
+  const dated = !searching && (view === V.NEW || view === V.RECENT);
+  const tiles = !searching && view === V.FOLDERS && !folder;
+  $("arrange").hidden = dated || tiles;
+  markCurrent();
+  // 收藏里总是列出收藏夹，哪怕都还空着，好在这里新建
+  if (tiles && state.v.lib === "K") return show(folderTiles());
+  if (!pool.length) {
+    const why = searching ? "换个关键词试试，文案、作者和话题都会搜到。"
+      : {[V.RECENT]: "最近 30 天没有取消喜欢或收藏的视频。", [V.NEW]: "最近 30 天没有新喜欢或新收藏的视频。", [V.FOLDERS]: state.v.lib === "L" ? "收藏夹只属于收藏，切到「收藏」再看。" : "还没有放进收藏夹的视频。"}[view] ?? (state.v.lib === "L" && !vdata.items.some((d) => d.L) ? "喜欢还没有导入。" : "这里还没有视频。");
+    return show(`<div class="state"><h2>${searching ? "没有匹配的视频" : "这里还是空的"}</h2><p>${why}</p></div>`);
+  }
+  const head = folder ? crumb(V.FOLDERS, folder, pool.length) : "";
+  if (folder) {
+    // 一个收藏夹里视频不多，不分组，按当前排序直接排
+    queue.push(...pool.sort(state.v.arrange === "likes" ? (a, b) => (b.lk ?? 0) - (a.lk ?? 0) : (a, b) => (b.pt ?? "").localeCompare(a.pt ?? "")));
+  } else if (dated) {
+    const key = view === V.RECENT ? "d" : "j";
+    queue.push({band: `30 天内，按${view === V.RECENT ? "取消" : "加入"}时间从近到远`, n: pool.length}, ...pool.sort((a, b) => when(b, key) - when(a, key)));
+  } else if (state.v.arrange === "likes") {
+    pool.sort((a, b) => (b.lk ?? 0) - (a.lk ?? 0));
+    LIKE_BANDS.forEach(([name, min], i) => {
+      const max = i ? LIKE_BANDS[i - 1][1] : Infinity;
+      const g = pool.filter((d) => (d.lk ?? 0) >= min && (d.lk ?? 0) < max);
+      if (g.length) queue.push({band: name, n: g.length}, ...g);
+    });
+  } else {
+    // 发布时间从新到旧，按月分组
+    pool.sort((a, b) => (b.pt ?? "").localeCompare(a.pt ?? ""));
+    let month = null, group = [];
+    const flush = () => { if (group.length) queue.push({band: month, n: group.length}, ...group); };
+    for (const d of pool) {
+      const t = new Date(d.pt ?? 0), m = `${t.getFullYear()} 年 ${t.getMonth() + 1} 月`;
+      if (m !== month) { flush(); month = m; group = []; }
+      group.push(d);
+    }
+    flush();
+  }
+  show(head); done = 0; more();
+}
+// 侧栏四个入口，两页同一个样子；配色按位置固定：全部靛蓝、特别关注与收藏夹琥珀、新增绿、取消红
+const PIN_PAL = ["人工智能", "幽默搞笑", "健康医疗", "历史人文"];
+const pinBtn = (v, icon, n, i) => `<button class="pin grain" data-v="${v}" style="${palVars(PIN_PAL[i])}">${motif(PIN_PAL[i], 120, 100)}<span class="ico">${icon}</span><span class="ft"><span class="lab">${v}</span><span class="big num">${n.toLocaleString()}</span></span></button>`;
+function renderSideV() {
+  if (!vdata) return;
+  const count = (view) => vdata.items.filter((d) => vIn(d, view)).length;
+  $("pins").innerHTML = [V.ALL, V.FOLDERS, V.NEW, V.RECENT].map((v, i) => pinBtn(v, PIN_ICON[v], count(v), i)).join("");
+  const counts = Object.fromEntries(vdata.categories.map((c) => [c, count(c)]));
+  const order = state.catSort === "count" ? [...vdata.categories].sort((a, b) => counts[b] - counts[a]) : vdata.categories;
+  $("cats").classList.remove("sortable");
+  $("cats").innerHTML = order.filter((c) => counts[c]).map((c) => `<button class="cat" data-v="${esc(c)}">${tile(c)}<span class="tx" title="${counts[c].toLocaleString()} 个视频"><b>${esc(c)}</b><span class="num">${counts[c].toLocaleString()}</span></span></button>`).join("");
+  syncSort("catSort", state.catSort);
+  markCurrent();
+}
+// 侧栏顶部的平台切换，博主、内容两页共用；没有「全部平台」，总是停在某一个平台上
+function buildPlats() {
+  $("plats").innerHTML = PLATFORM_LIST.map(([slug, label]) => `<button class="plat" aria-pressed="${state.plat === slug}" data-p="${slug}" ${ENABLED.has(slug) ? "" : "disabled"}>${esc(label)}</button>`).join("");
+  // 微信只有一页，不出「博主、内容」切换
+  $("mode").hidden = isWx();
+}
+// 换平台：每个平台各一份数据，清掉当前的重新读。还在路上的旧平台数据，到了也不用（load、loadV 里按平台核对）
+function resetPlatData() {
+  store.set("plat", state.plat);
+  data = null; vdata = null; vLoading = null; lastText = ""; lastVText = ""; wdata = null; lastWText = "";
+  byId = new Map(); vById = new Map();
+  buildPlats();
+  $("pins").innerHTML = ""; $("cats").innerHTML = "";
+}
+// 先按新平台换好两页的叫法、排序菜单（setMode 里抖音的内容页会顺带读视频数据），再读数据
+function switchPlat(slug) {
+  state.plat = slug; resetPlatData();
+  setMode(state.mode);
+  load(false);
+}
+// 页头「收藏、喜欢」标签，后面带各自的数量
+function buildTabs() {
+  const on = state.mode === "videos" && vdata;
+  $("tabs").hidden = !on;
+  if (!on) return;
+  const n = (k) => vdata.items.filter((d) => d[k] && !d[k].x).length;
+  $("tabs").innerHTML = [["K", "收藏"], ["L", "喜欢"]].map(([k, name]) =>
+    `<button role="tab" aria-selected="${state.v.lib === k}" data-lib="${k}">${TAB_ICON[k]}${name}<em class="num">${n(k).toLocaleString()}</em></button>`).join("");
+}
+function applyV(raw) {
+  const cutoff = new Date(Date.now() - RECENT_DAYS * 864e5).toISOString().slice(0, 10);
+  const items = raw.items.map((x) => ({...x, text: `${x.t ?? ""} ${x.a ?? ""} ${x.g ?? ""}`.toLowerCase()}));
+  // 本机记录盖在快照上，丢掉的条件同关注页
+  const readAt = raw.updated ? Date.parse(raw.updated) : 0;
+  for (const d of items) for (const k of ["L", "K"]) {
+    const rec = d[k], p = rec && vpending.get(rec.id);
+    if (!p) continue;
+    const fields = Object.keys(p).filter((f) => f !== "at");
+    if (fields.every((f) => (rec[f] ?? "") === p[f]) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) vpending.delete(rec.id);
+    else Object.assign(rec, Object.fromEntries(fields.map((f) => [f, p[f]])));
+  }
+  // 星标与收藏夹的本机记录按视频 ID 记，第一次标星时收藏夹库里还没有那份复制
+  for (const d of items) {
+    const key = `F:${d.v}`, p = vpending.get(key);
+    if (!p) continue;
+    d.F ??= {};
+    const fields = Object.keys(p).filter((f) => f !== "at");
+    const same = (f) => JSON.stringify(d.F[f] ?? (f === "f" ? [] : 0)) === JSON.stringify(p[f]);
+    if (fields.every(same) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) vpending.delete(key);
+    else Object.assign(d.F, Object.fromEntries(fields.map((f) => [f, p[f]])));
+  }
+  saveVPending();
+  // 网页上新建、还没同步回来的收藏夹，规则同上
+  vfolderPending = vfolderPending.filter((p) => !(raw.folders ?? []).includes(p.name) && readAt <= p.at + 10000 && Date.now() - p.at <= PENDING_TTL_MS);
+  store.set("vfolders", vfolderPending);
+  const cats = raw.cats ?? {};
+  // 侧栏按收藏库的分类顺序列，喜欢库多出来的接在后面
+  const categories = [...new Set([...(cats.K ?? []), ...(cats.L ?? [])])];
+  const shown = items.filter((x) => ["L", "K"].some((k) => x[k] && (!x[k].x || (x[k].d ?? "") >= cutoff)));
+  vdata = {cats, categories, folders: [...(raw.folders ?? []), ...vfolderPending.map((p) => p.name)], items: shown, cutoff};
+  vById = new Map(shown.map((d) => [d.v, d]));
+  // 静默刷新时保持滚动位置；第一次读到时滚动位置本来就在顶上
+  if (state.mode === "videos") { buildPlats(); refresh(); }
+}
+function loadV() {
+  const plat = state.plat;
+  vLoading ??= fetchJson(dataUrl("videos"))
+    .catch((err) => { if (err.login) throw err; return fetchJson(bundledUrl("videos")); })
+    .then(({text}) => { if (plat !== state.plat) return; lastVText = text; applyV(JSON.parse(text)); })
+    .catch((err) => { vLoading = null; if (state.mode === "videos") showError(err); });
+  return vLoading;
+}
+// 视频数据读过之后，「从 Notion 同步」完成、切回窗口时随关注数据一起静默重读；内容没变就不重绘。
+// 只重读关注数据的话，同步完视频页会停在旧数据上
+let lastVText = "";
+function reloadV() {
+  if (!vdata) return;
+  const plat = state.plat;
+  fetchJson(dataUrl("videos"))
+    .catch((err) => { if (err.login) throw err; return fetchJson(bundledUrl("videos")); })
+    .then(({text}) => { if (plat === state.plat && text !== lastVText) { lastVText = text; applyV(JSON.parse(text)); } })
+    .catch((err) => err.login ? toast(err.message) : console.error(err));
+}
+// 视频的写入：lib 是改哪一边（K 收藏、L 喜欢），两边各写各的页面
+function vset(d, lib, patch, record) {
+  Object.assign(d[lib], patch);
+  if (record) vpending.set(d[lib].id, record); else vpending.delete(d[lib].id);
+  saveVPending();
+  refresh();
+}
+function vchange(d, lib, patch, path, body, what) {
+  const rec = d[lib], before = Object.fromEntries(Object.keys(patch).map((k) => [k, rec[k] ?? ""])), prev = vpending.get(rec.id) ?? null;
+  vset(d, lib, patch, {...prev, ...patch, at: Date.now()});
+  post(path, {platform: state.plat, lib, id: rec.id, ...body}).catch((err) => { vset(d, lib, before, prev); toast(`${what}没有保存：${err.message}`); });
+}
+// 星标与收藏夹的写入。接口（Worker 按视频 ID 找收藏夹库里那份复制，没有就从收藏库那行复制一份新建，返回它的页面 ID）：
+//   POST /video/star {v, kid, on}：勾上或取消「星标」
+//   POST /video/folder {v, kid, folder, on}：把视频加入或移出一个收藏夹，只改这一个
+//   POST /video/folder/new {name}：收藏夹库的收藏夹列加一个选项
+// 同一个视频的写入一条接一条发，后一条不会读到前一条写完之前的收藏夹列表
+const fchain = new Map();
+function fchange(d, patch, path, body, what) {
+  d.F ??= {};
+  const key = `F:${d.v}`, before = {s: d.F.s ?? 0, f: [...(d.F.f ?? [])]}, prev = vpending.get(key) ?? null;
+  Object.assign(d.F, patch);
+  vpending.set(key, {...prev, ...patch, at: Date.now()}); saveVPending();
+  refresh();
+  const send = () => post(path, {platform: state.plat, v: d.v, kid: d.K.id, ...body})
+    .then((res) => { if (res?.id) d.F.id = res.id; })
+    .catch((err) => {
+      Object.assign(d.F, before);
+      if (prev) vpending.set(key, prev); else vpending.delete(key);
+      saveVPending(); refresh(); toast(`${what}没有保存：${err.message}`);
+    });
+  fchain.set(d.v, (fchain.get(d.v) ?? Promise.resolve()).then(send));
+}
+const toggleStar = (d) => fchange(d, {s: d.F?.s ? 0 : 1}, "/video/star", {on: !d.F?.s}, d.F?.s ? "取消星标" : "星标");
+function toggleFolder(d, name) {
+  if (name === STARRED) return toggleStar(d);
+  const now = d.F?.f ?? [], on = !now.includes(name);
+  fchange(d, {f: on ? [...now, name] : now.filter((f) => f !== name)}, "/video/folder", {folder: name, on}, `${on ? "加入" : "移出"}「${name}」`);
+}
+// 视频卡片的菜单：收藏里先列收藏夹（所在的打勾，点一下加入或移出），再列每一边各自的分类（两个库各自独立），最后是「取消收藏、取消喜欢」或「恢复」
+function videoMenu(d) {
+  const ks = libsOf(d);
+  const lists = ks.filter((k) => !d[k].x).map((k) => (ks.length > 1 ? `<div class="mh">${LIBS[k]}的分类</div>` : `<div class="mh">分类</div>`)
+    + (vdata.cats[k] ?? []).map((c) => `<button role="menuitemradio" data-lib="${k}" data-cat="${esc(c)}" aria-checked="${d[k].c === c}">${CHECK_ICON}<b>${esc(c)}</b></button>`).join("")).join("");
+  const folds = state.v.lib === "K" && d.K && !d.K.x ? `<div class="mh">收藏夹</div>` + [STARRED, ...vdata.folders].map((f) =>
+    `<button role="menuitemcheckbox" data-folder="${esc(f)}" aria-checked="${inFolder(d, f)}">${CHECK_ICON}<b>${esc(f)}</b></button>`).join("") + `<div class="sep"></div>` : "";
+  const acts = ks.map((k) => d[k].x ? `<button role="menuitem" data-lib="${k}" data-act="restore">恢复${LIBS[k]}</button>` : `<button role="menuitem" class="warn" data-lib="${k}" data-act="cancel">标记取消${LIBS[k]}</button>`).join("");
+  return (folds || lists ? `<div class="cmlist">${folds}${lists}</div><div class="sep"></div>` : "") + acts;
+}
+function videoMenuPick(d, it) {
+  if (d && it.dataset.folder !== undefined) return toggleFolder(d, it.dataset.folder);
+  const k = it.dataset.lib;
+  if (!d?.[k]) return;
+  if (it.dataset.cat !== undefined) {
+    if (it.dataset.cat !== d[k].c) vchange(d, k, {c: it.dataset.cat}, "/video/category", {category: it.dataset.cat}, "分类");
+  } else if (it.dataset.act === "cancel") {
+    const date = nowLocal();
+    vchange(d, k, {x: 1, d: date}, "/video/cancel", {on: true, date}, `取消${LIBS[k]}`);
+  } else if (it.dataset.act === "restore") {
+    const date = nowLocal();
+    vchange(d, k, {x: 0, d: "", j: date}, "/video/cancel", {on: false, date}, `恢复${LIBS[k]}`);
+  }
+}
+
+// ===== 微信：只有一页公众号文章，侧栏按公众号分类 =====
+const ARTICLE_ICON = svgIcon('<path d="M6 3.5h8.5L18 7v13.5H6Z"/><path d="M9 11h6"/><path d="M9 14.5h6"/><path d="M9 18h3.5"/>');
+// 收藏日期只有年月日，直接按字符串取，不经 Date（按 UTC 解析会在西半球早一天）
+const wdate = (s) => `${+s.slice(0, 4) === new Date().getFullYear() ? "" : `${+s.slice(0, 4)}年`}${+s.slice(5, 7)}月${+s.slice(8, 10)}日`;
+const acctHref = (name) => `/wechat?account=${encodeURIComponent(name)}`;
+const PEN_SMALL = svgIcon('<path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/>', 14);
+// 卡片只显示标题
+function wcard(d) {
+  const src = d.a ? `<a class="acc" href="${acctHref(d.a)}" data-acct="${esc(d.a)}">${esc(d.a)}</a>` : `<span>没有公众号</span>`;
+  return `<div class="art" data-wcard="${d.id}"><button class="pen" data-pen="${d.id}" aria-label="改标题" title="改标题">${PEN_SMALL}</button><p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${esc(d.n)}</a></p><div class="src">${src}<time>${d.j ? wdate(d.j) : ""}</time><button class="more" data-wid="${d.id}" aria-haspopup="menu" aria-expanded="false" aria-label="改公众号">${MORE_ICON}</button></div></div>`;
+}
+// 侧栏公众号的封面：名字首字放在按名字取色的方块里
+const acctTile = (name) => `<span class="tile ini" style="${palVars(name)}" aria-hidden="true">${esc([...name][0])}</span>`;
+function applyW(raw) {
+  const cutoff = new Date(Date.now() - RECENT_DAYS * 864e5).toISOString().slice(0, 10);
+  // 文件里已按收藏日期从新到旧、同一天按收藏先后排好
+  const all = (raw.items ?? []).map((x) => ({...x, wt: 1, a: x.a ?? "", j: x.j ?? "", t: x.t ?? "", n: x.n ?? ""}));
+  // 网页上改了公众号或删掉、还没同步回来的，按本机记录显示；丢掉的条件同抖音页（删掉的在快照里已经没有了也丢掉）
+  const readAt = raw.updated ? Date.parse(raw.updated) : 0, ids = new Set(all.map((d) => d.id));
+  for (const [id, p] of wpending) if (p.del && (!ids.has(id) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS)) wpending.delete(id);
+  const items = all.filter((d) => !wpending.get(d.id)?.del);
+  for (const d of items) {
+    const p = wpending.get(d.id);
+    if (!p) continue;
+    // 记录里可能有公众号 a、标题 n 两项
+    const fields = Object.keys(p).filter((k) => k !== "at");
+    if (fields.every((k) => d[k] === p[k]) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) wpending.delete(d.id);
+    else for (const k of fields) d[k] = p[k];
+  }
+  saveWPending();
+  wdata = {items, counts: new Map(), byId: new Map(items.map((d) => [d.id, d])), cutoff};
+  recount();
+  updated = raw.updated ?? null;
+  showStamp(); buildPlats();
+  renderSide(); render();
+}
+// 公众号的篇数与搜索用的文字，改了公众号后重算
+function recount() {
+  wdata.counts = new Map();
+  for (const d of wdata.items) {
+    d.text = `${d.n} ${d.a}`.toLowerCase();
+    if (d.a) wdata.counts.set(d.a, (wdata.counts.get(d.a) ?? 0) + 1);
+  }
+}
+function loadW(silent) {
+  lastFetch = Date.now();
+  if (!silent) show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  const plat = state.plat;
+  return fetchJson(dataUrl("videos"))
+    .catch((err) => {
+      if (err.login) throw err;
+      console.error(`read ${dataUrl("videos")} failed: ${err.message}`);
+      return fetchJson(bundledUrl("videos")).then((r) => ({...r, source: "bundled"}));
+    })
+    .then(({text, source}) => {
+      if (plat !== state.plat) return;
+      const changed = source !== dataSource;
+      dataSource = source;
+      if (changed && wdata) showStamp();
+      if (silent && text === lastWText) return;
+      lastWText = text;
+      applyW(JSON.parse(text));
+    })
+    .catch((err) => {
+      if (silent && wdata) return err.login ? toast(err.message) : console.error(err);
+      showError(err);
+    });
+}
+// 侧栏：两个入口，下面是公众号列表（像抖音的分类），可按篇数或名称排
+const W_SORT_MENU = `<div class="mh">公众号排序</div>` + [["count", "篇数", "从多到少"], ["name", "名称", "按拼音从 A 到 Z"]].map(([v, b, sm]) =>
+  `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
+function renderSideW() {
+  document.querySelector(".sec > span").textContent = "公众号";
+  const menu = $("catSort").querySelector(".menu");
+  if (menu.innerHTML !== W_SORT_MENU) menu.innerHTML = W_SORT_MENU;
+  syncSort("catSort", state.w.catSort);
+  if (!wdata) return;
+  $("pins").innerHTML = [[W.ALL, ARTICLE_ICON, wdata.items.length, 0], [W.NEW, PIN_ICON[V.NEW], wdata.items.filter((d) => d.j >= wdata.cutoff).length, 2]]
+    .map(([v, icon, n, i]) => pinBtn(v, icon, n, i)).join("");
+  const names = [...wdata.counts.keys()];
+  names.sort(state.w.catSort === "name" ? byName : (a, b) => wdata.counts.get(b) - wdata.counts.get(a) || byName(a, b));
+  $("cats").classList.remove("sortable");
+  $("cats").innerHTML = names.map((a) => {
+    const n = wdata.counts.get(a);
+    return `<button class="cat" data-v="${esc(a)}">${acctTile(a)}<span class="tx" title="${n.toLocaleString()} 篇"><b>${esc(a)}</b><span class="num">${n.toLocaleString()}</span></span></button>`;
+  }).join("");
+  markCurrent();
+}
+function renderW() {
+  $("tabs").hidden = true; $("arrange").hidden = true;
+  if (!wdata) return show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  queue = []; done = 0;
+  markCurrent();
+  if (!wdata.items.length) return show(`<div class="state"><h2>还没有微信的数据</h2><p>点侧栏的「从 Notion 同步」，把 Notion「微信」里的公众号文章读进来。</p></div>`);
+  // 搜索在全部文章的标题和公众号里找，与停在哪个公众号无关
+  const searching = Boolean(state.q), acct = searching ? null : state.w.acct;
+  const pool = wdata.items.filter((d) => searching ? d.text.includes(state.q) : acct ? d.a === acct : state.w.view !== W.NEW || d.j >= wdata.cutoff);
+  if (!pool.length) return show(`<div class="state"><h2>${searching ? "没有匹配的文章" : "这里还是空的"}</h2><p>${searching ? "换个关键词试试，标题和公众号都会搜到。" : "最近 30 天没有新收藏的文章。"}</p></div>`);
+  // 按收藏时间从新到旧平铺，不分年也不分月；文件里已排好，同一天按收藏列表的先后
+  queue.push(...pool);
+  show(acct ? acctHead(acct, pool.length, pool[0].j) : ""); more();
+}
+const PEN_ICON = svgIcon('<path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/>', 15);
+// 选中公众号时列表上方的头部：首字封面、名字、篇数与最近一次收藏，右侧「重命名」
+function acctHead(name, n, last) {
+  return `<div class="ahead" style="${palVars(name)}"><span class="atile" aria-hidden="true">${esc([...name][0])}</span>
+  <div class="ainfo"><small>公众号</small><h1 title="${esc(name)}">${esc(name)}</h1><div class="ameta">${n.toLocaleString()} 篇${last ? `<i>·</i>最近收藏于 ${wdate(last)}` : ""}</div></div>
+  <div class="acts"><button class="abtn" data-rename>${PEN_ICON}重命名</button></div></div>`;
+}
+// 输入时提示已有的公众号，选一个就是把文章归过去（整个号改成已有的名字就是两个号合并）
+const acctList = () => `<datalist id="acctNames">${[...wdata.counts.keys()].sort(byName).map((n) => `<option value="${esc(n)}">`).join("")}</datalist>`;
+// 整个号改名：标题就地换成同样大小的输入框，下面一行提示，右侧换成「取消、保存」；回车保存，Esc 取消
+function editAcctName() {
+  const head = document.querySelector(".ahead"), old = state.w.acct;
+  if (!head || !old) return;
+  const n = wdata.items.filter((d) => d.a === old).length;
+  head.querySelector("h1").outerHTML = `<input id="renameAcct" maxlength="60" list="acctNames" value="${esc(old)}" aria-label="新的公众号名">${acctList()}`;
+  head.querySelector(".ameta").textContent = `回车保存，${n.toLocaleString()} 篇一起改；改成已有的名字会把两个号合并`;
+  head.querySelector(".acts").innerHTML = `<button class="abtn" data-rename-cancel>取消</button><button class="abtn primary" data-rename-save>保存</button>`;
+  const input = $("renameAcct");
+  input.focus(); input.select();
+  const save = () => {
+    const name = input.value.trim();
+    if (!name || name === old) return render();
+    const list = wdata.items.filter((d) => d.a === old);
+    state.w.acct = name; remember(true);
+    renameArticles(list, name);
+  };
+  input.onkeydown = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); render(); }
+    if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); save(); }
+  };
+  head.querySelector("[data-rename-cancel]").onclick = () => render();
+  head.querySelector("[data-rename-save]").onclick = save;
+}
+// 改公众号：先在页面上生效并记在本机，再写 Notion。整个号改名时一批 5 篇、批与批隔 2 秒依次发：
+// Worker 每篇要先读后写，一次发太多会碰上 Notion 每秒约 3 次的限速，这样从源头不触发（「万无一失」指事前预防）。
+// 哪一批没写成，就把那一批退回原名并提示
+const ACCOUNT_BATCH = 5, ACCOUNT_GAP_MS = 2000;
+const wpending = new Map(Object.entries(store.get("wpending", {})));
+const saveWPending = () => store.set("wpending", Object.fromEntries(wpending));
+// 改标题：点卡片右上角的铅笔，标题原地变成输入框，回车保存，Esc 或点别处放弃。
+// 先在页面上生效并记在本机，再写 Notion（「标题」，「名称」跟着标题）；没写成就退回并提示
+function editTitle(d) {
+  const card = document.querySelector(`.art[data-wcard="${d.id}"]`); if (!card) return;
+  const p = card.querySelector("p");
+  p.outerHTML = `<textarea class="ttl" maxlength="200" aria-label="标题">${esc(d.n)}</textarea><span class="tip">回车保存，Esc 取消</span>`;
+  const box = card.querySelector("textarea.ttl");
+  const fit = () => { box.style.height = "auto"; box.style.height = `${box.scrollHeight}px`; };
+  fit(); box.focus(); box.select();
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    const n = box.value.replace(/\s+/g, " ").trim();
+    if (!save || !n || n === (d.n)) return refresh();
+    const before = d.n, prev = wpending.get(d.id) ?? null;
+    d.n = n;
+    wpending.set(d.id, {...prev, n, at: Date.now()}); saveWPending(); recount(); refresh();
+    post("/wechat/title", {id: d.id, title: n}).catch((err) => {
+      d.n = before;
+      if (prev) wpending.set(d.id, prev); else wpending.delete(d.id);
+      saveWPending(); recount(); refresh(); toast(`标题没有保存：${err.message}`);
+    });
+  };
+  box.addEventListener("input", fit);
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); finish(false); }
+    if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); finish(true); }
+  });
+  box.addEventListener("blur", () => finish(false));
+}
+// 删除一篇：先从页面上拿掉并记在本机，再把 Notion 里那一行移进回收站；没删掉就放回原处并提示
+function deleteArticle(d) {
+  const i = wdata.items.indexOf(d);
+  if (i < 0) return;
+  wdata.items.splice(i, 1); wdata.byId.delete(d.id);
+  wpending.set(d.id, {del: 1, at: Date.now()}); saveWPending(); recount(); refresh();
+  post("/wechat/delete", {id: d.id})
+    .then(() => toast("已删除，30 天内可在 Notion 回收站里恢复"))
+    .catch((err) => {
+      wdata.items.splice(Math.min(i, wdata.items.length), 0, d); wdata.byId.set(d.id, d);
+      wpending.delete(d.id); saveWPending(); recount(); refresh(); toast(`没有删掉：${err.message}`);
+    });
+}
+function renameArticles(list, name) {
+  const before = new Map(list.map((d) => [d.id, d.a])), at = Date.now();
+  for (const d of list) { d.a = name; wpending.set(d.id, {...wpending.get(d.id), a: name, at}); }
+  saveWPending(); recount(); refresh();
+  let chain = Promise.resolve();
+  for (let i = 0; i < list.length; i += ACCOUNT_BATCH) {
+    const batch = list.slice(i, i + ACCOUNT_BATCH), gap = i ? ACCOUNT_GAP_MS : 0;
+    chain = chain.then(() => new Promise((r) => setTimeout(r, gap)))
+      .then(() => post("/wechat/account", {ids: batch.map((d) => d.id), name}))
+      .catch((err) => {
+        for (const d of batch) { d.a = before.get(d.id); wpending.delete(d.id); }
+        saveWPending(); recount(); refresh(); toast(`公众号没有改成：${err.message}`);
+      });
+  }
+}
+// 点卡片上的公众号名：侧栏选中这个公众号，只看它的文章
+function openAcct(name) {
+  keepTop();
+  state.w.acct = name; state.q = ""; $("q").value = "";
+  render(); $("panel").scrollTo({top: 0}); remember();
+  document.querySelector(".cat[aria-current=true]")?.scrollIntoView({block: "nearest"});
+}
+
+// 关注与视频各记各的筛选和排序；切换时搜索清空
+const ARRANGE_MENU = {
+  follows: [["follow", "关注先后", "最近关注的在前"], ["band", "粉丝数", "按粉丝量分档显示"], ["name", "名称", "按拼音从 A 到 Z，不分档"]],
+  videos: [["time", "发布时间", "从新到旧，按月分组"], ["likes", "点赞数", "从多到少，按点赞量分档"]],
+};
+function setMode(m) {
+  const wx = isWx();
+  state.mode = m; store.set("mode", m);
+  state.q = ""; $("q").value = "";
+  const hint = wx ? "搜索标题或公众号" : m === "videos" ? "搜索文案、作者或话题" : "搜索账号名称或简介";
+  $("q").placeholder = hint;
+  $("q").setAttribute("aria-label", wx ? hint : m === "videos" ? "搜索文案、作者或话题" : "搜索名称或简介");
+  $("mode").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
+  $("arrange").querySelector(".menu").innerHTML = `<div class="mh">${m === "videos" ? "视频排序" : "账号排序"}</div>` + ARRANGE_MENU[m].map(([v, b, sm]) =>
+    `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
+  syncSort("arrange", m === "videos" ? state.v.arrange : state.arrange);
+  buildPlats();
+  if (m !== "videos" || wx) $("tabs").hidden = true;
+  // 侧栏标题与公众号排序菜单在数据到之前就换好
+  if (wx) { renderSide(); if (wdata) { render(); $("panel").scrollTo({top: 0}); } return; }
+  if (m === "videos" && !vdata) { render(); $("pins").innerHTML = ""; $("cats").innerHTML = ""; loadV(); return; }
+  if (m === "follows" && !data) return;
+  renderSide(); render(); $("panel").scrollTo({top: 0});
+}
+
+// 自定义顺序：刚拖完、Notion 还没同步回来时先用本机记录
+function catOrder() {
+  const base = pendingOrder ?? data.categories;
+  return state.catSort === "count" ? [...data.categories].sort((a, b) => counts[b] - counts[a]) : base;
+}
+function renderSide() {
+  if (isWx()) return renderSideW();
+  // 微信页把这一栏换成了公众号，回到抖音时换回来
+  document.querySelector(".sec > span").textContent = "分类";
+  if ($("catSort").querySelector(".menu").innerHTML !== CAT_SORT_MENU) { $("catSort").querySelector(".menu").innerHTML = CAT_SORT_MENU; syncSort("catSort", state.catSort); }
+  if (state.mode === "videos") return renderSideV();
+  const live = data.items.filter((d) => !d.x);
+  const lists = {[ALL]: live, [STAR]: live.filter((d) => d.s), [NEW]: live.filter((d) => d.j >= data.cutoff), [RECENT]: data.items.filter((d) => d.x)};
+  $("pins").innerHTML = [ALL, STAR, NEW, RECENT].map((v, i) => pinBtn(v, FOLLOW_PIN_ICON[v], lists[v].length, i)).join("");
+  counts = {};
+  for (const c of data.categories) counts[c] = 0;
+  for (const d of live) if (d.c in counts) counts[d.c]++;
+  const sortable = state.catSort === "custom";
+  $("cats").classList.toggle("sortable", sortable);
+  $("cats").innerHTML = catOrder().map((c) => {
+    covers[c] = cover(live.filter((d) => d.c === c));
+    return `<button class="cat" data-v="${esc(c)}"${sortable ? ' draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"' : ""}>${covers[c]}<span class="tx" title="${counts[c].toLocaleString()} 个账号"><b>${esc(c)}</b><span class="num">${counts[c].toLocaleString()}</span></span>${sortable ? GRIP_ICON : ""}</button>`;
+  }).join("");
+  syncSort("catSort", state.catSort);
+  markCurrent();
+}
+
+function apply(raw) {
+  const cutoff = new Date(Date.now() - RECENT_DAYS * 864e5).toISOString().slice(0, 10);
+  const items = raw.items.filter((x) => !x.x || (x.d ?? "") >= cutoff).map((x) => ({
+    id: x.id, n: x.n, p: x.p ?? null, c: x.c ?? null, u: x.u ?? null, b: x.b ?? "", a: x.a ?? null, f: x.f ?? 0,
+    x: Boolean(x.x), d: x.d ?? "", s: Boolean(x.s), j: x.j ?? "", o: x.o ?? 0,
+    text: (x.n + " " + (x.b ?? "")).toLowerCase(),
+  }));
+  // 本机记录丢掉的三种情况：快照已经和它一致；快照是在这次改动之后才读的 Notion（留 10 秒余量，
+  // 以 Notion 为准，包括在 Notion 里又改回去的情况）；等得太久。其余的盖在快照上
+  const readAt = raw.updated ? Date.parse(raw.updated) : 0;
+  for (const d of items) {
+    const p = pending.get(d.id);
+    if (!p) continue;
+    const fields = Object.keys(p).filter((k) => k !== "at");
+    if (fields.every((k) => d[k] === p[k]) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) pending.delete(d.id);
+    else for (const k of fields) d[k] = p[k];
+  }
+  savePending();
+  updated = raw.updated ?? null;
+  showStamp();
+  if (pendingOrder && pendingOrder.join("\n") === raw.categories.join("\n")) { pendingOrder = null; store.set("pendingOrder", null); }
+  if (pendingOrder && (pendingOrder.length !== raw.categories.length || pendingOrder.some((c) => !raw.categories.includes(c)))) { pendingOrder = null; store.set("pendingOrder", null); }
+  data = {categories: raw.categories, items, cutoff};
+  byId = new Map(items.map((d) => [d.id, d]));
+  // 平台按钮两页共用，靠关注数据里的平台名单生成；停在视频页时关注数据照常更新，只是不重绘列表
+  buildPlats();
+  if (state.mode === "videos") return;
+  renderSide();
+  syncSort("arrange", state.arrange);
+  render();
+}
+
+// 侧栏底部的更新时间；数据不是从仓库读到的最新一份时标红说明
+function showStamp() {
+  // 同步进行中这里显示进度，结束时再换回来
+  if ($("sync").classList.contains("busy")) return;
+  // 备用数据时侧栏放不下更新时间，挪进悬停提示
+  const stale = dataSource !== "github";
+  $("ago").textContent = stale ? "备用数据" : updated ? `更新于 ${stamp(updated)}` : "";
+  $("ago").classList.toggle("stale", stale);
+  $("sync").title = stale ? `暂时读不到仓库里的最新数据，显示的是备用的一份${updated ? `（更新于 ${stamp(updated)}）` : ""}，可能不是最新的` : "把 Notion 里的改动同步到网页";
+}
+
+// 返回 JSON 文本；先看状态与类型，返回 HTML 错误页时不把 JSON 解析异常抛给用户
+function fetchJson(url) {
+  return api(url).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`.trim());
+    if (!(res.headers.get("content-type") ?? "").includes("json")) throw new Error(`HTTP ${res.status}，返回的不是 JSON`);
+    return res.text().then((text) => ({text, source: res.headers.get("x-data-source") ?? "bundled"}));
+  });
+}
+
+function load(silent) {
+  if (isWx()) return loadW(silent);
+  lastFetch = Date.now();
+  if (!silent) show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  // Worker 出错（不是它返回的备用数据）时再读打包的那份；那份也读不到才报错。登录过期时那份同样读不到，不再读
+  const plat = state.plat;
+  return fetchJson(dataUrl("creators"))
+    .catch((err) => {
+      if (err.login) throw err;
+      console.error(`read ${dataUrl("creators")} failed: ${err.message}`);
+      return fetchJson(bundledUrl("creators")).then((r) => ({...r, source: "bundled"}));
+    })
+    .then(({text, source}) => {
+      if (plat !== state.plat) return;
+      const changed = source !== dataSource;
+      dataSource = source;
+      if (changed && data) showStamp();
+      // 静默刷新拿到的内容没变就不重绘，免得列表跳动、滚动位置丢失
+      if (silent) reloadV();
+      if (silent && text === lastText) return;
+      lastText = text;
+      apply(JSON.parse(text));
+    })
+    .catch((err) => {
+      // 已有列表时刷新失败不把页面换成报错，原因留在控制台，登录过期另外提示；首次读取失败才占据页面
+      if (silent && data) return err.login ? toast(err.message) : console.error(err);
+      showError(err);
+    });
+}
+
+// 网页上的改动：先在页面上生效并记在本机，写入 Notion 失败再退回原状并提示原因。
+// 星标只改按钮，不打乱列表；分类与取关会让卡片换组，重排列表但保持滚动位置
+// record 是这一行改完后的本机记录；为 null 时删掉记录
+function setFields(d, patch, record) {
+  Object.assign(d, patch);
+  if (record) pending.set(d.id, record); else pending.delete(d.id);
+  savePending();
+  if (Object.keys(patch).every((k) => k === "s")) {
+    document.querySelectorAll(`.star[data-id="${d.id}"]`).forEach((b) => {
+      b.setAttribute("aria-pressed", String(d.s));
+      b.setAttribute("aria-label", d.s ? "取消特别关注" : "设为特别关注");
+    });
+    renderSide();
+  } else refresh();
+}
+// 写入：先改页面，再写 Notion；失败时字段和本机记录都退回改动前的样子，
+// 前一次还没同步回来的改动仍按本机记录显示
+function change(d, patch, path, body, what) {
+  const before = Object.fromEntries(Object.keys(patch).map((k) => [k, d[k]]));
+  const prev = pending.get(d.id) ?? null;
+  setFields(d, patch, {...prev, ...patch, at: Date.now()});
+  post(path, body).catch((err) => { setFields(d, before, prev); toast(`${what}没有保存：${err.message}`); });
+}
+// 重排列表后补足卡片到原来的滚动位置；窄屏是整页滚动，宽屏是面板滚动
+const scroller = () => matchMedia("(max-width:900px)").matches ? document.scrollingElement : $("panel");
+function refresh() {
+  const sc = scroller();
+  const top = sc.scrollTop;
+  renderSide(); render();
+  while (done < queue.length && sc.scrollHeight < top + innerHeight * 2) more();
+  sc.scrollTop = top;
+}
+$("list").addEventListener("click", (e) => {
+  // 公众号名是真链接，按住 Ctrl 等键时交给浏览器在新标签页打开
+  const pen = e.target.closest("[data-pen]");
+  if (pen) { const d = wdata?.byId.get(pen.dataset.pen); if (d) editTitle(d); return; }
+  const acc = e.target.closest("[data-acct]");
+  if (acc) { if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; e.preventDefault(); return openAcct(acc.dataset.acct); }
+  if (e.target.closest("[data-rename]")) return editAcctName();
+  const nf = e.target.closest("[data-new]");
+  if (nf) return editNewFolder(nf);
+  const f = e.target.closest(".folder[data-folder]");
+  if (f) { keepTop(); state.v.folder = f.dataset.folder; render(); $("panel").scrollTo({top: 0}); remember(); return; }
+  if (e.target.closest("[data-back]")) { keepTop(); state.v.folder = null; render(); $("panel").scrollTo({top: 0}); remember(); return; }
+  const m = e.target.closest(".more");
+  if (m) { e.stopPropagation(); return menuFor === m ? closeCardMenu() : openCardMenu(m); }
+  const b = e.target.closest(".star"); if (!b) return;
+  if (b.dataset.vid) { const v = vById.get(b.dataset.vid); return v && toggleStar(v); }
+  const d = byId.get(b.dataset.id); if (!d) return;
+  change(d, {s: !d.s}, "/star", {id: d.id, on: !d.s}, "星标");
+});
+
+// 卡片菜单：分类列表（当前分类打勾）＋ 标记取关或恢复关注。「特别关注」不是分类，不在这里
+function openCardMenu(btn) {
+  closeCardMenu();
+  const menu = $("cardMenu");
+  if (btn.dataset.wid) {
+    const d = wdata?.byId.get(btn.dataset.wid); if (!d) return;
+    menu.innerHTML = `<div class="mh">公众号</div><div class="medit"><input id="acctInput" maxlength="60" list="acctNames" value="${esc(d.a)}" placeholder="公众号名" aria-label="这篇文章的公众号">${acctList()}</div><div class="mtip">回车保存，只改这一篇；Esc 取消</div><div class="sep"></div><button role="menuitem" class="warn" data-act="wdelete">删除这篇收藏</button>`;
+    const input = menu.querySelector("input");
+    input.onkeydown = (e) => {
+      if (e.key !== "Enter" || e.isComposing) return;
+      e.preventDefault();
+      const name = input.value.trim();
+      closeCardMenu(true);
+      if (name && name !== d.a) renameArticles([d], name);
+    };
+  } else if (btn.dataset.vid) {
+    const v = vById.get(btn.dataset.vid); if (!v) return;
+    menu.innerHTML = videoMenu(v);
+  } else {
+    const d = byId.get(btn.dataset.id); if (!d) return;
+    const cats = catOrder().map((c) => `<button role="menuitemradio" data-cat="${esc(c)}" aria-checked="${d.c === c}">${CHECK_ICON}<b>${esc(c)}</b></button>`).join("");
+    menu.innerHTML = `<div class="mh">分类</div><div class="cmlist">${cats}</div><div class="sep"></div>`
+      + (d.x ? `<button role="menuitem" data-act="refollow">恢复关注</button>` : `<button role="menuitem" class="warn" data-act="unfollow">标记取关</button>`);
+  }
+  menuFor = btn; btn.setAttribute("aria-expanded", "true");
+  // 默认在按钮下方右对齐，下面放不下就放到上方
+  const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const left = Math.max(8, Math.min(r.right - mw, innerWidth - mw - 8));
+  const top = r.bottom + 6 + mh <= innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - mh);
+  menu.style.transformOrigin = top < r.top ? "bottom right" : "top right";
+  menu.style.left = `${left}px`; menu.style.top = `${top}px`;
+  menu.classList.add("open");
+  const cur = menu.querySelector("input") ?? menu.querySelector("[aria-checked=true]") ?? menu.querySelector("[role^=menuitem]");
+  cur.focus({preventScroll: true}); cur.scrollIntoView({block: "nearest"});
+  if (cur.tagName === "INPUT") cur.select();
+}
+function closeCardMenu(refocus) {
+  if (!menuFor) return;
+  $("cardMenu").classList.remove("open");
+  menuFor.setAttribute("aria-expanded", "false");
+  if (refocus && menuFor.isConnected) menuFor.focus();
+  menuFor = null;
+}
+$("cardMenu").addEventListener("click", (e) => {
+  const it = e.target.closest("[role^=menuitem]"); if (!it || !menuFor) return;
+  // 微信文章的删除要点两次：第一次只把这一项变成红底的「确认删除」
+  if (menuFor.dataset.wid) {
+    if (it.dataset.act !== "wdelete") return;
+    if (!it.classList.contains("armed")) { it.classList.add("armed"); it.textContent = "确认删除？再点一次"; return; }
+    const d = wdata?.byId.get(menuFor.dataset.wid);
+    closeCardMenu(true);
+    if (d) deleteArticle(d);
+    return;
+  }
+  if (menuFor.dataset.vid) { const v = vById.get(menuFor.dataset.vid); closeCardMenu(true); return videoMenuPick(v, it); }
+  const d = byId.get(menuFor.dataset.id);
+  closeCardMenu(true);
+  if (!d) return;
+  if (it.dataset.cat !== undefined) {
+    if (it.dataset.cat !== d.c) change(d, {c: it.dataset.cat}, "/category", {id: d.id, category: it.dataset.cat}, "分类");
+  } else if (it.dataset.act === "unfollow") {
+    const date = nowLocal();
+    change(d, {x: true, d: date}, "/unfollow", {id: d.id, on: true, date}, "取关");
+  } else if (it.dataset.act === "refollow") {
+    const date = nowLocal();
+    change(d, {x: false, d: "", j: date}, "/unfollow", {id: d.id, on: false, date}, "恢复关注");
+  }
+});
+$("cardMenu").addEventListener("keydown", (e) => {
+  const items = [...$("cardMenu").querySelectorAll("[role^=menuitem]")], i = items.indexOf(document.activeElement);
+  if (e.key === "Escape" || e.key === "Tab") { e.preventDefault(); closeCardMenu(true); }
+  else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && items.length) { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+});
+document.addEventListener("click", (e) => { if (menuFor && !e.target.closest("#cardMenu")) closeCardMenu(); });
+$("panel").addEventListener("scroll", () => closeCardMenu(), {passive: true});
+addEventListener("resize", () => closeCardMenu());
+
+// 从 Notion 同步：启动一次全量同步，按同步任务的真实状态显示进度。全量同步每次都重写 数据文件，
+// 成功后读到的 updated 一定是新的；没变就说明网页没读到这次提交，按失败提示
+const SYNC_STATES = {waiting: "同步即将开始", queued: "同步排队中", running: "同步中", "not-started": "同步即将开始"};
+// 同步任务没成功、又不是某一步出错时的结论
+const SYNC_ENDINGS = {cancelled: "同步被取消了", timed_out: "同步超时了", startup_failure: "同步任务没能启动"};
+function finishSync(msg) {
+  clearTimeout(syncPoll); syncPoll = null;
+  $("sync").classList.remove("busy");
+  showStamp();
+  toast(msg);
+}
+async function reloadAfterSync(from) {
+  for (let i = 0; i < SYNC_RELOADS; i++) {
+    await load(true);
+    if (updated !== from) {
+      return finishSync(dataSource === "github" ? `已同步 Notion 的最新数据，更新于 ${stamp(updated)}` : "同步完成了，但网页暂时读不到仓库，显示的是备用数据");
+    }
+    await new Promise((r) => setTimeout(r, SYNC_RELOAD_MS));
+  }
+  finishSync(dataSource === "github" ? "同步任务完成了，但网页读到的数据没有变，请稍后刷新再看" : "同步完成了，但网页暂时读不到仓库，显示的是备用数据");
+}
+$("sync").onclick = () => {
+  if ($("sync").classList.contains("busy")) return;
+  $("sync").classList.add("busy");
+  // 只同步当前平台的数据库
+  post("/sync", {platform: state.plat}).then(({at}) => {
+    toast(`已开始从 Notion 同步${platName(state.plat)}的数据`);
+    const from = updated, start = Date.now();
+    let notStartedSince = null;
+    const poll = () => api(`${API}/sync-status?since=${encodeURIComponent(at)}`)
+      .then((res) => res.json())
+      .then((s) => {
+        if (s.state === "success") return reloadAfterSync(from);
+        if (s.state === "failure") {
+          const why = s.conclusion === "failure" ? `同步失败，出错的步骤是「${s.step || "未知"}」` : SYNC_ENDINGS[s.conclusion] ?? `同步没有完成（${s.conclusion}）`;
+          return finishSync(`${why}，网页数据没有变`);
+        }
+        if (s.state === "dispatch-failed") return finishSync(`同步没有启动：${s.error}`);
+        if (s.state === "not-started") {
+          notStartedSince ??= Date.now();
+          if (Date.now() - notStartedSince > SYNC_NOT_STARTED_MS) return finishSync("同步没有启动，请再点一次");
+        } else notStartedSince = null;
+        // unknown 是一时查不到 GitHub，照常再查
+        $("ago").textContent = SYNC_STATES[s.state] ?? "正在查同步进度";
+        if (Date.now() - start > SYNC_GIVEUP_MS) return finishSync("同步超过 10 分钟还没结束，请稍后刷新再看");
+        syncPoll = setTimeout(poll, SYNC_POLL_MS);
+      })
+      .catch((err) => {
+        if (err.login) return finishSync(err.message);
+        console.error(err);
+        if (Date.now() - start > SYNC_GIVEUP_MS) return finishSync("一直查不到同步进度，请稍后刷新再看");
+        syncPoll = setTimeout(poll, SYNC_POLL_MS);
+      });
+    $("ago").textContent = SYNC_STATES.waiting;
+    clearTimeout(syncPoll);
+    syncPoll = setTimeout(poll, SYNC_POLL_MS);
+  }).catch((err) => { $("sync").classList.remove("busy"); toast(`没有开始同步：${err.message}`); });
+};
+
+// 分类自定义顺序：拖动或 Alt+↑↓ 调整，松手即保存
+function saveOrder() {
+  const order = [...$("cats").children].map((b) => b.dataset.v);
+  if (order.join("\n") === catOrder().join("\n")) return;
+  pendingOrder = order; store.set("pendingOrder", order);
+  post("/order", {platform: state.plat, order}).catch((err) => {
+    pendingOrder = null; store.set("pendingOrder", null);
+    renderSide(); toast(`分类顺序没有保存：${err.message}`);
+  });
+}
+$("cats").addEventListener("dragstart", (e) => {
+  dragged = e.target.closest(".cat"); if (!dragged) return;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", dragged.dataset.v);
+  requestAnimationFrame(() => dragged?.classList.add("dragging"));
+});
+$("cats").addEventListener("dragover", (e) => {
+  if (!dragged) return;
+  e.preventDefault();
+  const over = e.target.closest(".cat"); if (!over || over === dragged) return;
+  const r = over.getBoundingClientRect();
+  $("cats").insertBefore(dragged, e.clientY > r.top + r.height / 2 ? over.nextSibling : over);
+});
+$("cats").addEventListener("dragend", () => {
+  if (!dragged) return;
+  dragged.classList.remove("dragging"); dragged = null;
+  saveOrder();
+});
+$("cats").addEventListener("keydown", (e) => {
+  if (state.catSort !== "custom" || !e.altKey || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+  const b = e.target.closest(".cat"); if (!b) return;
+  e.preventDefault();
+  const sib = e.key === "ArrowUp" ? b.previousElementSibling : b.nextElementSibling?.nextElementSibling ?? null;
+  if (e.key === "ArrowUp" && !sib) return;
+  if (e.key === "ArrowDown" && !b.nextElementSibling) return;
+  $("cats").insertBefore(b, sib);
+  b.focus();
+  saveOrder();
+});
+// 排序菜单：按钮上显示当前排法，点开是带勾选的单选菜单；选中、点外面或按 Esc 都会收起
+const SORT_LABEL = {catSort: {count: "账号数", custom: "自定义"}, arrange: {follow: "关注先后", band: "粉丝数", name: "名称", time: "发布时间", likes: "点赞数"}};
+function syncSort(id, val) {
+  $(id).querySelector(".lab").textContent = id === "catSort" && isWx() ? (val === "name" ? "名称" : "篇数") : id === "catSort" && state.mode === "videos" && val === "count" ? "视频数" : SORT_LABEL[id][val];
+  $(id).querySelectorAll("[role=menuitemradio]").forEach((m) => m.setAttribute("aria-checked", String(m.dataset.val === val)));
+}
+function toggleMenu(id, open) {
+  const root = $(id), btn = root.querySelector(".sortbtn"), menu = root.querySelector(".menu");
+  open ??= btn.getAttribute("aria-expanded") !== "true";
+  btn.setAttribute("aria-expanded", String(open));
+  menu.classList.toggle("open", open);
+  if (open) (menu.querySelector("[aria-checked=true]") ?? menu.querySelector("[role=menuitemradio]")).focus();
+}
+function onSort(id, pick) {
+  const root = $(id);
+  root.querySelector(".sortbtn").onclick = () => { for (const other of ["catSort", "arrange"]) if (other !== id) toggleMenu(other, false); toggleMenu(id); };
+  root.querySelector(".menu").onclick = (e) => {
+    const m = e.target.closest("[role=menuitemradio]"); if (!m) return;
+    pick(m.dataset.val); syncSort(id, m.dataset.val);
+    toggleMenu(id, false); root.querySelector(".sortbtn").focus();
+  };
+  root.onkeydown = (e) => {
+    const items = [...root.querySelectorAll("[role=menuitemradio]")], i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") { toggleMenu(id, false); root.querySelector(".sortbtn").focus(); }
+    else if (i >= 0 && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+  };
+}
+document.addEventListener("click", (e) => { if (!e.target.closest(".sort")) { toggleMenu("catSort", false); toggleMenu("arrange", false); } });
+onSort("catSort", (v) => { if (isWx()) { state.w.catSort = v; store.set("wcatSort", v); } else { state.catSort = v; store.set("catSort", v); } renderSide(); });
+onSort("arrange", (v) => {
+  if (state.mode === "videos") { state.v.arrange = v; store.set("varrange", v); } else { state.arrange = v; store.set("arrange", v); }
+  render(); $("panel").scrollTo({top: 0});
+});
+syncSort("catSort", state.catSort); syncSort("arrange", state.arrange);
+
+document.querySelector("aside").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]"); if (!b) return;
+  keepTop();
+  if (isWx()) { if (b.classList.contains("pin")) { state.w.view = b.dataset.v; state.w.acct = null; } else state.w.acct = b.dataset.v; }
+  else if (state.mode === "videos") { state.v.view = b.dataset.v; state.v.folder = null; } else state.view = b.dataset.v;
+  state.q = ""; $("q").value = "";
+  render(); $("panel").scrollTo({top: 0}); remember();
+});
+$("plats").onclick = (e) => {
+  const b = e.target.closest(".plat"); if (!b || b.disabled || b.dataset.p === state.plat) return;
+  keepTop();
+  switchPlat(b.dataset.p); $("panel").scrollTo({top: 0}); remember();
+};
+// 一万条逐键重排会顿，停手 120ms 后再筛
+$("q").oninput = (e) => { clearTimeout(typing); typing = setTimeout(() => { state.q = e.target.value.trim().toLowerCase(); render(); $("panel").scrollTo({top: 0}); remember(true); }, 120); };
+$("q").onkeydown = (e) => { if (e.key === "Escape") { e.target.value = ""; state.q = ""; e.target.blur(); render(); remember(true); } };
+addEventListener("keydown", (e) => {
+  if (e.key === "/" && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $("q").focus(); }
+});
+// 根为视口时，面板这一层滚动容器的裁剪同样计入，桌面与窄屏两种滚动方式都适用
+new IntersectionObserver((es) => es[0].isIntersecting && more(), {rootMargin: "1200px"}).observe($("sentinel"));
+// 切回窗口时重新读一次数据：别的设备或标签页刚同步过，这里不用手动刷新也能看到。Notion 里的改动要先点「从 Notion 同步」
+const refreshIfStale = () => { if (document.visibilityState === "visible" && Date.now() - lastFetch > REFRESH_AFTER_MS) load(true); };
+document.addEventListener("visibilitychange", refreshIfStale);
+addEventListener("focus", refreshIfStale);
+$("tabs").onclick = (e) => {
+  const b = e.target.closest("[data-lib]"); if (!b || b.dataset.lib === state.v.lib) return;
+  keepTop();
+  state.v.lib = b.dataset.lib; store.set("vlib", state.v.lib); state.v.folder = null;
+  renderSide(); render(); $("panel").scrollTo({top: 0}); remember();
+};
+$("mode").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b && b.dataset.m !== state.mode) { keepTop(); setMode(b.dataset.m); remember(); } };
+
+// 浏览器的前进、后退：每次换页（博主与内容、平台、收藏与喜欢、入口、分类、收藏夹、首页某排的「全部」）把位置写进地址并新增一条历史记录，
+// 后退、前进时按地址还原，回到离开时的滚动位置。地址也能收藏、分享，打开就是那一页
+history.scrollRestoration = "manual";
+function urlOf() {
+  const u = new URLSearchParams();
+  let path = `/${state.plat}`;
+  if (isWx()) {
+    // 微信只有一页：/wechat，选中的公众号放在 account 里
+    if (state.w.acct) u.set("account", state.w.acct); else if (state.w.view !== W.ALL) u.set("view", state.w.view);
+  } else if (state.mode === "videos") {
+    path += state.v.lib === "L" ? "/like" : "/collect";
+    if (state.v.view !== V.ALL) u.set("view", state.v.view);
+    if (state.v.folder) u.set("folder", state.v.folder);
+  } else if (state.view !== ALL) u.set("view", state.view);
+  if ($("q").value.trim()) u.set("q", $("q").value.trim());
+  const query = u.toString();
+  return path + (query ? `?${query}` : "");
+}
+function remember(replace) {
+  const url = urlOf();
+  if (replace) history.replaceState({...history.state, top: 0}, "", url);
+  else if (url !== location.pathname + location.search) history.pushState({top: 0}, "", url);
+}
+// 离开当前页之前，把滚动位置记在当前这条历史记录上
+const keepTop = () => history.replaceState({...history.state, top: scroller().scrollTop}, "");
+// 按地址设定位置；地址里没写的项取默认值。返回要切到的页面和搜索词
+// 网址：/平台[/creator|/collect|/like]，分类、收藏夹、搜索词放在问号后面。
+// 只打开 /app 时（没写平台）沿用 p 参数或上次停留的平台；没有数据的平台换到抖音
+function fromUrl() {
+  const u = new URLSearchParams(location.search);
+  const [, path, page] = location.pathname.match(/^\/([a-z]+)(?:\/(creator|collect|like))?\/?$/) ?? [];
+  const slug = path === "app" ? undefined : path;
+  const plat = slugOf(slug ?? u.get("p") ?? "douyin");
+  state.plat = ENABLED.has(plat) ? plat : "douyin";
+  const mode = page ? (page === "creator" ? "follows" : "videos") : !slug && u.get("m") === "videos" ? "videos" : "follows";
+  if (state.plat === "wechat") {
+    // 微信只有一页，/wechat/collect（上一版的收藏页）也认；account 是选中的公众号
+    state.w.acct = u.get("account"); state.w.view = u.get("view") ?? W.ALL;
+    return {mode: state.mode, q: u.get("q") ?? ""};
+  } else if (mode === "videos") {
+    state.v.lib = page === "like" || (!page && u.get("lib") === "L") ? "L" : "K";
+    state.v.view = u.get("view") ?? V.ALL;
+    state.v.folder = u.get("folder");
+  } else state.view = u.get("view") ?? ALL;
+  return {mode, q: u.get("q") ?? ""};
+}
+function setQuery(q) { $("q").value = q; state.q = q.trim().toLowerCase(); }
+addEventListener("popstate", (e) => {
+  closeCardMenu();
+  const plat = state.plat, {mode, q} = fromUrl();
+  // 换了平台：重新读那个平台的数据，读到后照常显示
+  if (state.plat !== plat) { resetPlatData(); setMode(mode); setQuery(q); load(false); return; }
+  if (mode !== state.mode) setMode(mode);
+  setQuery(q);
+  if (!(isWx() ? wdata : mode === "videos" ? vdata : data)) return;
+  buildPlats(); renderSide(); render();
+  const sc = scroller(), top = e.state?.top ?? 0;
+  while (done < queue.length && sc.scrollHeight < top + innerHeight * 2) more();
+  sc.scrollTop = top;
+});
+// 打开时地址里带了平台就按地址来；只打开 /app 时沿用上次停留的平台和博主或内容页，再把位置写回地址
+const start = location.pathname.replace(/\/$/, "") !== "/app" ? fromUrl() : null;
+buildPlats();
+load(false);
+setMode(start?.mode ?? state.mode);
+if (start) setQuery(start.q);
+remember(true);
+</script>
+</body>
+</html>

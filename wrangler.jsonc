@@ -1,0 +1,39 @@
+{
+  "name": "zhejiao",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  // 网站域名：在 Cloudflare 上托管的域名下挑一个子域名，部署时 Cloudflare 自动建 DNS 记录与证书。
+  // 要让旧地址跳过来，另加一条普通路由（如 { "pattern": "example.com/old*", "zone_name": "example.com" }），再在 vars.REDIRECT_PREFIXES 里写上 "old"
+  "routes": [
+    { "pattern": "zhejiao.example.com", "custom_domain": true }
+  ],
+  // 只走正式地址，不留 workers.dev 与预览地址这两个旁门
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // / 返回首页 index.html，各平台的页面由 Worker 返回 app.html；结尾的斜杠去掉，网址只有一种写法
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "none"
+  },
+  // 全部换成你自己的（见 docs/setup.md）。HOST 与上面的域名一致；GITHUB_REPO 是你用模板生成的私有仓库，同步任务往里提交数据文件；
+  // Cloudflare Access 的团队域名、应用 AUD 标签与允许的邮箱，写入、读数据、查同步进度都据此核验登录凭证，任一留空时读写一律拒绝；
+  // GitHub App 的应用 ID 与它在仓库上的安装 ID，用来启动同步、读仓库里的数据文件、查同步进度（见 src/github-app.js）
+  "vars": {
+    "HOST": "zhejiao.example.com",
+    "GITHUB_REPO": "your-name/your-zhejiao",
+    "GITHUB_BRANCH": "main",
+    "REDIRECT_PREFIXES": "",
+    "ACCESS_TEAM_DOMAIN": "your-team.cloudflareaccess.com",
+    "ACCESS_AUD": "",
+    "ACCESS_EMAIL": "you@example.com",
+    "GITHUB_APP_ID": "",
+    "GITHUB_APP_INSTALLATION_ID": ""
+  },
+  // 合并网页上的改动后再启动同步，并缓存 GitHub App 安装令牌，见 src/worker.js 的 SyncDebouncer；免费版只能用 SQLite 存储的 Durable Object
+  "durable_objects": { "bindings": [{ "name": "SYNC", "class_name": "SyncDebouncer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SyncDebouncer"] }],
+  // Workers Logs 可以回查历史请求，同步或读数据出问题时不必再先开实时日志
+  "observability": { "enabled": true }
+}

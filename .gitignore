@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+# 本地调试时放密钥的文件
+.dev.vars
+# 数据文件只提交进你自己的私有仓库（同步任务用 git add -f 提交），公开的模板仓库里不放；本机预览用 scripts/demo-data.mjs 生成
+public/data/

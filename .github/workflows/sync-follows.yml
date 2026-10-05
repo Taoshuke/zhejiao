@@ -1,0 +1,89 @@
+name: sync-follows
+# 把 Notion「折角」页里各平台的数据库同步成 public/data/<平台>/creators.json（博主）、videos.json（收藏、喜欢、收藏夹；微信是公众号文章）与 summary.json（首页摘要）并提交。
+# 平台与数据库的对应见 src/platforms.mjs。
+# 网页经 Worker 直接从仓库读这两个文件，提交即生效，不经过部署（Workers Builds 的监视路径排除了它们）。
+# 只在被启动时运行，没有定时任务：
+# - pages：网页上改了几行，src/worker.js 写进 Notion 后启动，只同步这几行（改了分类顺序、新建了收藏夹时另读选项）；
+# - full：网页上点「从 Notion 同步」，只把当前平台（platforms）的几个库全表重读并提交，同一次运行里其他平台的改动照常按页面同步；
+#   需要时也可以手动运行 gh workflow run sync-follows.yml -f mode=full，不写平台就是全部平台。
+#   脚本批量改完不自动触发。
+# 运行标题带上模式，便于在运行记录里区分
+run-name: sync-follows ${{ inputs.mode }}
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: pages 只同步指定的行，full 重读全表
+        type: choice
+        options: [full, pages]
+        default: full
+      platforms:
+        description: 要全表重读的平台英文名，逗号分隔；full 模式下不写就是全部平台
+        type: string
+        default: ""
+      pages:
+        description: 要按页面同步的 Notion 页面 ID，逗号分隔
+        type: string
+        default: ""
+      order:
+        description: 选项是否变了（博主的分类顺序、新建的收藏夹），1 或 0
+        type: string
+        default: "0"
+
+# 同时只跑一个，后面最多排一个；worker.js 在已有一次排队时不再启动，避免新排队的把旧排队的取消掉
+concurrency:
+  group: sync-follows
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # 参数走环境变量传给脚本，不拼进命令行
+      # 步骤名会显示在网页的同步失败提示里
+      - name: 读取 Notion 生成博主数据
+        run: node scripts/sync-follows.mjs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          SYNC_PLATFORMS: ${{ inputs.platforms }}
+          SYNC_PAGES: ${{ inputs.pages }}
+          SYNC_ORDER: ${{ inputs.order }}
+      # 两个脚本各自只处理属于自己数据库的行
+      - name: 读取 Notion 生成内容数据
+        run: node scripts/sync-videos.mjs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          SYNC_PLATFORMS: ${{ inputs.platforms }}
+          SYNC_PAGES: ${{ inputs.pages }}
+          SYNC_ORDER: ${{ inputs.order }}
+      # 微信只有一个库：全表重读，或把网页上改了公众号的几行按页面合并，写 public/data/wechat/videos.json
+      - name: 读取 Notion 生成微信数据
+        run: node scripts/sync-wechat.mjs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          SYNC_PLATFORMS: ${{ inputs.platforms }}
+          SYNC_PAGES: ${{ inputs.pages }}
+      # full 每次都写文件，一定有提交；pages 只在那几行确实变了时才写
+      - name: 提交到仓库
+        run: |
+          # 第一次同步时数据文件还没进版本库，先登记一下，git diff 才看得到它们
+          git add -f -N public/data/ 2>/dev/null || true
+          if ! git diff --quiet; then
+            git config user.name "follows-bot"
+            git config user.email "actions@users.noreply.github.com"
+            # public/data/ 在模板仓库的忽略列表里，要强制提交
+            git add -f public/data/
+            git commit -m "chore: sync follows from Notion"
+            # 手动推送可能同时发生，先变基再推以免撞车
+            git pull --rebase
+            git push
+          fi
