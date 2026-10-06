@@ -2,7 +2,7 @@
 
 *Fold a corner on what's worth keeping.*
 
-Zhejiao is a self-hosted dashboard for the accounts you follow and the things you save. Creators you follow on Douyin, videos you liked or bookmarked, and WeChat articles you saved all live in your own Notion. A clean web page lets you browse them by platform and category, and edit categories, stars, unfollow marks and titles; every edit is written back to Notion.
+Zhejiao is a self-hosted dashboard for the accounts you follow and the things you save. Creators you follow on Douyin, videos you liked or bookmarked, and WeChat articles you saved all live in your own Notion. A clean web page lets you browse them by platform and category, and edit categories, stars, unfollow marks and titles; every edit is written back to Notion. Notion is the default, and you can swap in another database; see [Using a different database](#using-a-different-database).
 
 [中文](README.md)
 
@@ -35,6 +35,21 @@ flowchart LR
 - The Worker serves those files straight from the repository with ETag caching, so new data is live as soon as it is committed, with no redeploy. If GitHub is unreachable it falls back to the cached copy, then to the copy bundled at deploy time.
 - Edits from the page are written to Notion by the Worker, then batched into a page-level sync that brings only the changed rows back.
 - A read-only Notion integration is used by the workflow; the integration with write access is used only by the Worker. On the GitHub side, a GitHub App installed only on your repository is used.
+
+## Using a different database
+
+Zhejiao uses Notion as its database by default, and the sync scripts, the write API and the setup guide are all written for Notion. That is the author's own preference, not a requirement. If you would rather use Airtable, Feishu Bitable (飞书多维表格), Google Sheets or a database you run yourself, you can swap it in.
+
+The web pages only read a few JSON files under `public/data/<platform>/` and never talk to the database directly, so switching databases only touches the code that does:
+
+- `scripts/sync-*.mjs` reads from the database and writes those JSON files. The short field keys are documented in the comment at the top of each script; keep the same format when you switch.
+- `src/write-api.js` writes edits made on the page back to the database.
+- `src/platforms.mjs` maps each platform to its databases.
+- `tools/resync.py` compares a fresh export with the database and writes the changes back. Leave it alone if you don't use it.
+
+For the fields each database needs, see [docs/notion-schema.md](docs/notion-schema.md) and create the equivalent fields in your product. A few labels in the UI mention Notion, such as "从 Notion 同步" (Sync from Notion) in the sidebar; rename them to match your product if you like.
+
+The products named here are only examples. Out of the box, the code supports Notion only.
 
 ## Try it locally (no services needed)
 
