@@ -204,12 +204,13 @@ const ARROW = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" strok
 const PLATS = [
   {slug: "douyin", nm: "Douyin", zh: "抖音", pal: ["#E4E6FA", "#4B57C9", "#1B1F48"], shape: 1},
   {slug: "wechat", nm: "WeChat", zh: "微信", pal: ["#DDEFE5", "#338A68", "#132E22"], shape: 0},
-  {slug: "x", nm: "X", zh: "推特", pal: null},
+  {slug: "x", nm: "X", zh: "推特", pal: ["#E5E4DD", "#4E5A6E", "#1F242C"], shape: 2},
   {slug: "bilibili", nm: "Bilibili", zh: "哔哩哔哩", pal: null},
 ];
 const SHAPES = [
   (w, h) => `<circle cx="${w * .95}" cy="${h * .02}" r="${w * .44}" fill="currentColor" opacity=".85"/>`,
   (w, h) => [0, 1, 2, 3, 4].map((i) => `<circle cx="${w}" cy="0" r="${w * .22 + i * w * .13}" fill="none" stroke="currentColor" stroke-width="1.4" opacity="${.7 - i * .11}"/>`).join(""),
+  (w, h) => Array.from({length: 8}, (_, i) => `<line x1="${w * .6 + i * 14}" y1="-10" x2="${w * .6 + i * 14 - 60}" y2="${h * .27}" stroke="currentColor" stroke-width="5" opacity=".45"/>`).join(""),
 ];
 const motif = (i, w = 280, h = 250) => `<svg class="mo" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMaxYMin slice" aria-hidden="true">${SHAPES[i](w, h)}</svg>`;
 
@@ -229,6 +230,8 @@ function platCard(p, s) {
   const stat = (label, val, href) => `<a class="stat" href="${href}"><span>${label}</span><b class="num">${s ? fmt(val) : '<i class="sk"></i>'}</b></a>`;
   const stats = p.slug === "douyin"
     ? stat("关注的博主", s?.f, "/douyin") + stat("收藏的视频", s?.k, "/douyin/collect") + stat("喜欢的视频", s?.l, "/douyin/like")
+    : p.slug === "x"
+    ? stat("关注的博主", s?.f, "/x") + stat("书签", s?.k, "/x/collect") + stat("喜欢的帖子", s?.l, "/x/like")
     : stat("收藏的文章", s?.k, "/wechat") + stat("公众号", s?.a, "/wechat");
   // 整张卡片是去平台页的链接；里面几行数字各自是链接，叠在上面
   return `<div class="plat" style="--bg:${bg};--ac:${ac};--ink:${ink}">${motif(p.shape)}
@@ -241,7 +244,7 @@ function render(data) {
   const dy = data.douyin, wx = data.wechat;
   const totals = {f: dy?.f, v: dy ? (dy.k ?? 0) + (dy.l ?? 0) : undefined, k: wx?.k};
   document.querySelectorAll("[data-total]").forEach((b) => { const v = totals[b.dataset.total]; if (v !== undefined) b.textContent = fmt(v); });
-  const latest = [dy?.updated, wx?.updated].filter(Boolean).sort().at(-1);
+  const latest = [dy?.updated, wx?.updated, data.x?.updated].filter(Boolean).sort().at(-1);
   $("stamp").textContent = latest ? `数据更新于 ${stamp(latest)}` : "";
   if (dy) {
     const rows = dy.recent.filter((r) => r.type === "follow");
@@ -274,7 +277,8 @@ account();
 
 const data = {};
 render(data);
-Promise.allSettled(["douyin", "wechat"].map((slug) => summary(slug).then((s) => { data[slug] = s; }))).then((results) => {
+// 只读接入了的平台（PLATS 里有配色的）
+Promise.allSettled(PLATS.filter((p) => p.pal).map((p) => p.slug).map((slug) => summary(slug).then((s) => { data[slug] = s; }))).then((results) => {
   render(data);
   const failed = results.filter((r) => r.status === "rejected").map((r) => r.reason);
   if (failed.length) {

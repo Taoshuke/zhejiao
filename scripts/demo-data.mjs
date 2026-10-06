@@ -17,6 +17,13 @@ const uuid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const now = Date.now();
 const daysAgo = (d) => new Date(now - d * 864e5 - int(0, 86399) * 1000).toISOString();
 const day = (iso) => iso.slice(0, 10);
+// 演示用的头像：按名字算一个色相，渐变底上写名字的第一个字；不用 rand，免得改变其余数据
+const hue = (name) => [...name].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 360, 7);
+const avatar = (name) => {
+  const h = hue(name), ch = [...name.replace(/^@/, "")][0].toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 55% 62%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360} 50% 42%)"/></linearGradient></defs><rect width="96" height="96" fill="url(#g)"/><text x="48" y="50" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="42" font-weight="600" fill="#fff" text-anchor="middle" dominant-baseline="central">${ch}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
 const write = (file, data) => {
   const path = join(ROOT, "public/data", file);
   mkdirSync(join(path, ".."), { recursive: true });
@@ -33,7 +40,7 @@ const creators = Array.from({ length: 160 }, (_, i) => {
   const n = pick(SYL) + pick(SYL) + pick(TAIL);
   const fans = Math.round(Math.exp(rand() * 15.5));
   const followed = daysAgo(Math.pow(rand(), 2) * 900);
-  const item = { id: uuid(1000 + i), n, c: pick(FOLLOW_CATS), u: "https://www.douyin.com/", b: pick(BIO), f: fans, j: followed, o: 0 };
+  const item = { id: uuid(1000 + i), n, c: pick(FOLLOW_CATS), u: "https://www.douyin.com/", b: pick(BIO), a: avatar(n), f: fans, j: followed, o: 0 };
   if (rand() < 0.08) item.s = 1;
   if (rand() < 0.04) { item.x = 1; item.d = daysAgo(int(1, 25)); }
   return item;
@@ -67,7 +74,7 @@ const videos = Array.from({ length: 180 }, (_, i) => {
     t: `${pick(TOPIC[c])} #${c}`,
     a: pick(SYL) + pick(SYL) + pick(TAIL),
     du: int(15, 900),
-    pt: daysAgo(int(1, 800)),
+    pt: daysAgo(1 + Math.pow(rand(), 1.8) * 800),
     lk: Math.round(Math.exp(rand() * 13)),
   };
   if (inL) it.L = { id: uuid(5000 + i), c, ...(rand() < 0.2 && { j: daysAgo(int(0, 40)) }) };
@@ -94,5 +101,66 @@ articles.forEach((x, i) => (x.o = i + 1));
 articles.reverse();
 write("wechat/videos.json", { updated: new Date(now).toISOString(), items: articles });
 
+// ---------- X 博主、书签与喜欢 ----------
+// 账号分类是 X 单独的一套；X 不给关注时间，先后只靠关注顺序
+const X_CATS = ["人工智能", "编程开发", "软件工具", "投资理财", "加密货币", "新闻媒体", "国际局势", "文艺娱乐", "知识科普", "生活分享", "个人日常"];
+const FIRST = ["Alex", "Mia", "Leo", "Nora", "Sam", "Iris", "Owen", "Ada", "Kai", "Luna", "Theo", "Zoe", "Max", "Ivy", "Ben", "Eli"];
+const LAST = ["Chen", "Park", "Rivera", "Ito", "Novak", "Silva", "Hart", "Moreau", "Lin", "Berg", "Kaur", "Wells"];
+const X_BIO = {
+  人工智能: ["Building small agents that do boring work", "研究大模型推理，偶尔写写博客", "ML engineer. Notes on evals and tooling"],
+  编程开发: ["Rust, Go, and too many side projects", "写前端十年，最近在学编译器", "Open source maintainer"],
+  软件工具: ["Shipping a calm note-taking app", "一个人做效率工具", "Product updates and tips"],
+  投资理财: ["Long-term investor. Not financial advice", "每周写一篇市场笔记", "Index funds and patience"],
+  加密货币: ["Onchain since 2017", "研究链上数据", "Wallet design and security"],
+  新闻媒体: ["Daily briefing on tech and policy", "独立新闻编辑", "Correspondent covering Asia"],
+  国际局势: ["Writing about trade and diplomacy", "关注国际关系与地缘", "Foreign policy analyst"],
+  文艺娱乐: ["Film nerd. Mostly old movies", "插画师，画城市和猫", "Making music at night"],
+  知识科普: ["Explaining physics with napkin drawings", "科普作者，讲点生物学", "History threads every Sunday"],
+  生活分享: ["Living in a small coastal town", "记录在国外的日常", "Coffee, bikes, and long walks"],
+  个人日常: ["", "hi", "just here to read"],
+};
+// 名字不重复：从名与姓的全部组合里挑
+const NAMES = FIRST.flatMap((f) => LAST.map((l) => `${f} ${l}`));
+const xCreators = Array.from({ length: 96 }, (_, i) => {
+  const name = NAMES.splice(Math.floor(rand() * NAMES.length), 1)[0], c = pick(X_CATS);
+  const item = { id: uuid(12000 + i), n: name, c, u: "https://x.com/", b: pick(X_BIO[c]), a: avatar(name), f: Math.round(Math.exp(4 + rand() * 11.5)), o: 0 };
+  if (!item.b) delete item.b;
+  if (rand() < 0.08) item.s = 1;
+  if (rand() < 0.03) { item.x = 1; item.d = daysAgo(int(1, 25)); }
+  return item;
+});
+xCreators.forEach((c, i) => (c.o = i + 1));
+xCreators.sort((a, b) => b.f - a.f);
+write("x/creators.json", { updated: new Date(now).toISOString(), categories: X_CATS, items: xCreators });
+
+// 帖子沿用内容分类（和抖音视频同一套）
+const POST_CATS = ["人工智能", "编程开发", "数码硬件", "财经投资", "时事国际", "科学科普", "读书文学", "人生感悟"];
+const POST = {
+  人工智能: ["把一个评测集从 2000 条精简到 200 条，结论几乎没变。小而准的评测比大而全的更有用。", "Spent the weekend wiring an agent to triage my inbox. The hard part was deciding what it should never do.", "上下文越长越好吗？实测下来，先把资料整理干净，比一股脑塞进去效果好得多。"],
+  编程开发: ["A tiny CLI that turns any folder into a static gallery. ~200 lines, no dependencies.", "重构的第一步不是改代码，是先补测试。", "Hot take: most config files should be code."],
+  数码硬件: ["换了块屏幕，旧笔记本又能再战三年。", "The best camera upgrade is still a better lens.", "机械键盘的轴体选错了，打字一天手腕就知道。"],
+  财经投资: ["复利最难的部分不是数学，是坚持不动。", "Reading 10-Ks so you don't have to: three things to check first.", "利率每变一点，房贷月供差多少，算给你看。"],
+  时事国际: ["Thread: what the new trade agreement actually changes, in plain words.", "一张图看懂这次选举的各方席位。", "Why shipping costs matter more than headlines suggest."],
+  科学科普: ["为什么夜空是黑的？这个问题困扰了天文学家两百年。", "Octopuses taste with their arms. Yes, really.", "一棵树一天能蒸发多少水。"],
+  读书文学: ["今年读到最好的开头，第一句就让人停不下来。", "Rereading a book ten years later is meeting a different author.", "写作的秘诀之一，是把形容词删掉一半。"],
+  人生感悟: ["慢慢来，比较快。", "Most good things in life are boring on day one.", "允许自己有一段时间什么都不做。"],
+};
+const posts = Array.from({ length: 140 }, (_, i) => {
+  const c = pick(POST_CATS), inK = rand() < 0.55, inL = !inK || rand() < 0.25;
+  const it = {
+    v: String(1900000000000000000n + BigInt(i * 104729)),
+    u: "https://x.com/",
+    t: pick(POST[c]),
+    a: `${pick(FIRST)} ${pick(LAST)}`,
+    pt: daysAgo(1 + Math.pow(rand(), 1.8) * 700),
+    lk: Math.round(Math.exp(rand() * 11)),
+  };
+  if (inL) it.L = { id: uuid(14000 + i), c, ...(rand() < 0.15 && { j: daysAgo(int(0, 40)) }) };
+  if (inK) it.K = { id: uuid(16000 + i), c, ...(rand() < 0.15 && { j: daysAgo(int(0, 40)) }) };
+  return it;
+}).sort((a, b) => b.pt.localeCompare(a.pt));
+write("x/videos.json", { updated: new Date(now).toISOString(), cats: { K: POST_CATS, L: POST_CATS }, folders: [], items: posts });
+
 writeSummary("douyin");
 writeSummary("wechat");
+writeSummary("x");

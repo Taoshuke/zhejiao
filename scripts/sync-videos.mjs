@@ -9,7 +9,7 @@
  * 收藏夹库：视频放进一个收藏夹，就从收藏库复制一行过去，「收藏夹」单选填那个收藏夹；标星就是放进「星标」。
  * 同一视频在几个收藏夹里就有几行。收藏夹只属于收藏。
  * 文件按视频合并成一条，两边的记录分别放在 L（喜欢）、K（收藏）下，收藏夹归属放在 F 下。短键名：
- *   v 视频 ID，u 视频链接，t 文案（前 300 字），a 作者，au 作者主页，n 图文（1），du 时长秒，pt 发布时间，lk 点赞数，g 话题
+ *   v 视频 ID（X 是帖子 ID），u 视频链接（X 是帖子链接），t 文案（X 是正文，前 300 字），a 作者，au 作者主页，n 图文（1），du 时长秒，pt 发布时间，lk 点赞数，g 话题
  *   L、K 里：id 页面 ID，c 分类，x 已取消（1），d 取消时刻，j 收藏或喜欢的时刻（「添加时间」）
  *   F 里：s 标了星（1），f 所在的收藏夹（不含星标）
  * 顶层 cats 是两个库各自的分类选项顺序，folders 是收藏夹库的收藏夹选项（不含星标）。
@@ -23,6 +23,8 @@ const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "
 const fileOf = (slug) => join(ROOT, `public/data/${slug}/videos.json`);
 // 两个库在 src/platforms.mjs 里的键名，和页面上的叫法
 const LIBS = { K: { key: "collect", label: "收藏" }, L: { key: "like", label: "喜欢" } };
+// X 的收藏叫书签，库名是「X 书签」「X 喜欢」，只用在日志和报错里
+const libTitle = (slug, lib) => slug === "x" ? `X ${lib === "K" ? "书签" : "喜欢"}` : `${NAMES[slug]}${LIBS[lib].label}`;
 const TIME = "添加时间";
 const STARRED = "星标";
 const NOTION_VERSION = "2025-09-03";
@@ -66,13 +68,16 @@ async function queryAll(dataSourceId, name) {
 
 const text = (richText) => (richText ?? []).map((t) => t.plain_text).join("");
 const compact = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== 0 && !(Array.isArray(v) && !v.length)));
-const videoId = (url) => url?.match(/\/(?:video|note)\/(\d+)/)?.[1] ?? null;
+// 抖音 /video/、/note/，X /status/ 后面的数字
+const videoId = (url) => url?.match(/\/(?:video|note|status)\/(\d+)/)?.[1] ?? null;
+// X 的帖子库用「帖子链接」「正文」两列，其余列名与抖音相同
+const linkOf = (p) => p["视频链接"]?.url ?? p["帖子链接"]?.url;
 
 // 两个库共有的视频资料
 function shared(p) {
   return compact({
-    u: p["视频链接"]?.url,
-    t: (text(p["文案"]?.rich_text) || text(p["名称"]?.title)).slice(0, 300),
+    u: linkOf(p),
+    t: (text(p["文案"]?.rich_text) || text(p["正文"]?.rich_text) || text(p["名称"]?.title)).slice(0, 300),
     a: text(p["作者"]?.rich_text),
     au: p["作者主页链接"]?.url,
     n: p["类型"]?.select?.name === "图文" ? 1 : 0,
@@ -106,7 +111,7 @@ const ids = (process.env.SYNC_PAGES ?? "").split(",").map((s) => s.trim()).filte
 async function syncPlatform(slug, db, pages) {
   const libs = Object.keys(LIBS).filter((lib) => db[LIBS[lib].key]);
   if (!libs.length) return;
-  const out = fileOf(slug), title = (lib) => `${NAMES[slug]}${LIBS[lib].label}`, foldersName = `${NAMES[slug]}收藏夹`;
+  const out = fileOf(slug), title = (lib) => libTitle(slug, lib), foldersName = `${NAMES[slug]}收藏夹`;
   const existing = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : null;
   const full = FULL.has(slug);
   const libOf = (page) => libs.find((lib) => page?.parent?.data_source_id === db[LIBS[lib].key]);
@@ -114,7 +119,7 @@ async function syncPlatform(slug, db, pages) {
   const byVideo = new Map(full ? [] : (existing?.items ?? []).map((it) => [it.v, it]));
 
   function put(page, lib) {
-    const v = videoId(page.properties["视频链接"]?.url);
+    const v = videoId(linkOf(page.properties));
     if (!v) return;
     const { L, K, F } = byVideo.get(v) ?? {};
     byVideo.set(v, ordered({ v, L, K, F, ...shared(page.properties), [lib]: record(page) }));

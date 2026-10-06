@@ -332,7 +332,7 @@ const DB_URL = ""; // 你的博主数据库的 Notion 链接，填了空状态�
 // 每个平台一组 Notion 数据库、各自的数据文件，点「从 Notion 同步」只同步当前平台。有数据库的平台与 src/platforms.mjs 一致，其余先列出、按钮不可点
 // 按钮上用英文名
 const PLATFORM_LIST = [["douyin", "Douyin"], ["wechat", "WeChat"], ["x", "X"], ["bilibili", "Bilibili"]];
-const ENABLED = new Set(["douyin", "wechat"]);
+const ENABLED = new Set(["douyin", "wechat", "x"]);
 // 英文名或中文名都认（旧版本在本机和旧网址里记的是中文名）
 const slugOf = (name) => PLATFORM_LIST.find(([slug, label]) => name === slug || name === label)?.[0];
 const platName = (slug) => PLATFORM_LIST.find(([s]) => s === slug)?.[1] ?? slug;
@@ -386,10 +386,17 @@ const state = {view: ALL, plat: ENABLED.has(slugOf(store.get("plat", "douyin")))
 // 视频页（喜欢与收藏）：两个 Notion 数据库各自独立，同一视频在两边各有一条记录（L 喜欢、K 收藏），分类、星标、取消各管各的。
 // 数据单独一份 videos.json，切到「内容」时才读；短键名见 scripts/sync-videos.mjs
 const LIBS = {L: "喜欢", K: "收藏"};
+// X 与抖音共用博主页和内容页：收藏叫书签，内容是帖子，没有收藏夹库，所以没有星标和收藏夹入口
+const isX = () => state.plat === "x";
+const libName = (k) => k === "K" && isX() ? "书签" : LIBS[k];
+const noun = () => isX() ? "帖子" : "视频";
+const hasFolders = () => !isX();
+// 入口的显示名：X 上「全部视频」写成「全部帖子」，地址里仍用原名
+const vLabel = (v) => v === V.ALL ? `全部${noun()}` : v;
 const V = {ALL: "全部视频", FOLDERS: "收藏夹", NEW: "近期新增", RECENT: "近期取消"};
 const LIKE_BANDS = [["十万赞以上",1e5],["一万到十万赞",1e4],["一千到一万赞",1e3],["一千赞以下",0]];
 // lib 是看收藏还是喜欢（两个库各自独立，页头标签切换）；folder 是收藏夹里点进的那一个
-state.v = {view: V.ALL, arrange: store.get("varrange", "time"), lib: store.get("vlib", "K"), folder: null};
+state.v = {view: V.ALL, arrange: store.get("varrange", "time"), lib: store.get("vlib", "K"), folder: null, catSort: store.get("vcatSort", "count") === "name" ? "name" : "count"};
 let vdata = null, vLoading = null, vById = new Map();
 // 微信：只有一个库，公众号文章，数据在 wechat/videos.json（短键名见 scripts/sync-wechat.mjs）。
 // 网页上能改标题、改公众号（单篇或整个号改名）、删除文章，经 /api/wechat/* 写回 Notion。
@@ -612,7 +619,10 @@ const PAL = {
 const FOLLOW_PAL = {"出海华人": "异国见闻", "外籍博主": "异国见闻", "医疗健康": "健康医疗", "时事军事": "时事国际", "财经商业": "财经投资", "科技数码": "数码硬件",
   "知识科普": "科学科普", "情感心理": "心理成长", "旅行探索": "旅行风光", "美食餐饮": "美食烹饪", "运动健身": "健身康复", "时尚美业": "穿搭美妆", "养生门店": "健康医疗",
   "品牌官方": "好物种草", "工厂外贸": "家居装修", "本地商家": "美食烹饪", "电商带货": "好物种草", "海外商家": "异国见闻", "个人日常": "内容不明", "人气博主": "颜值写真",
-  "生活分享": "人生感悟", "颜值才艺": "颜值写真", "职业日常": "职场求职", "家庭生活": "育儿教育"};
+  "生活分享": "人生感悟", "颜值才艺": "颜值写真", "职业日常": "职场求职", "家庭生活": "育儿教育",
+  // X 博主单独一套分类，各借一组不重复的配色
+  "美国政坛": "法律常识", "国际局势": "时事国际", "中文时评": "历史人文", "人权民运": "好物种草", "新闻媒体": "语言学习", "政府机构": "眼镜验配",
+  "软件工具": "数码硬件", "加密货币": "幽默搞笑", "投资理财": "财经投资", "宗教信仰": "哲学思想", "文艺娱乐": "影视娱乐", "海外生活": "异国见闻"};
 const pal = (c) => PAL[c] ?? (() => { const h = hueOf(c); return [`hsl(${h} 30% 88%)`, `hsl(${h} 45% 38%)`, `hsl(${h} 35% 14%)`]; })();
 const palVars = (c) => { const [bg, ac, ink] = pal(FOLLOW_PAL[c] ?? c); return `--bg:${bg};--ac:${ac};--ink:${ink}`; };
 // 几何图形：每个分类固定一种，压在卡片右上角，像丛书封面上的图案
@@ -664,9 +674,9 @@ function vcard(d) {
   const lib = state.v.lib, rec = d[lib], c = rec.c || "内容不明", view = state.v.view;
   // 同一视频也在另一个库里时，角上标一下
   const other = lib === "K" ? "L" : "K", also = d[other] && !d[other].x;
-  const icon = also ? `<span class="libic ${other}" title="也在${LIBS[other]}里">${other === "L" ? HEART : MARK}</span>` : "";
+  const icon = also ? `<span class="libic ${other}" title="也在${libName(other)}里">${other === "L" ? HEART : MARK}</span>` : "";
   const tail = view === V.RECENT ? `<span class="when">${vdate(new Date(when(d, "d")))}取消</span>` : view === V.NEW ? `<span class="when new">${vdate(new Date(when(d, "j")))}加入</span>` : `<span class="num">${d.lk ? "♥ " + fans(d.lk) : ""}</span>`;
-  const star = lib === "K" && !rec.x ? `<button class="star" data-vid="${d.v}" aria-pressed="${Boolean(d.F?.s)}" aria-label="${d.F?.s ? "取消星标" : "标星，放进收藏夹"}">${STAR_ICON}</button>` : "";
+  const star = lib === "K" && !rec.x && hasFolders() ? `<button class="star" data-vid="${d.v}" aria-pressed="${Boolean(d.F?.s)}" aria-label="${d.F?.s ? "取消星标" : "标星，放进收藏夹"}">${STAR_ICON}</button>` : "";
   return `<div class="poster grain${rec.x ? " gone" : ""}" data-vid="${d.v}" style="${palVars(c)}">${motif(c)}
   <div class="pt"><span class="c">${svgIcon(CAT_ICON[c] ?? OTHER_ICON, 12)}${esc(c)}</span>${icon}${star}<button class="more" data-vid="${d.v}" aria-haspopup="menu" aria-expanded="false" aria-label="改分类、取消">${MORE_ICON}</button></div>
   <p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${caption(d)}</a></p>
@@ -715,6 +725,8 @@ function createFolder(name) {
 const crumb = (back, name, n, unit = "个") => `<div class="crumb"><button data-back>${esc(back)}</button>›<b>${esc(name)}</b><span class="num">${n.toLocaleString()} ${unit}</span></div>`;
 function renderV() {
   if (!vdata) return show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  // 从抖音的收藏夹换到没有收藏夹的平台时，回到全部
+  if (state.v.view === V.FOLDERS && !hasFolders()) { state.v.view = V.ALL; state.v.folder = null; }
   const searching = Boolean(state.q), view = state.v.view, folder = view === V.FOLDERS && !searching ? state.v.folder : null;
   // 先清空滚动加载的队列：下面几种情况直接换掉整个列表，旧队列留着会被滚动接着追加进来
   queue = []; done = 0;
@@ -726,11 +738,12 @@ function renderV() {
   $("arrange").hidden = dated || tiles;
   markCurrent();
   // 收藏里总是列出收藏夹，哪怕都还空着，好在这里新建
-  if (tiles && state.v.lib === "K") return show(folderTiles());
+  if (tiles && state.v.lib === "K" && hasFolders()) return show(folderTiles());
   if (!pool.length) {
-    const why = searching ? "换个关键词试试，文案、作者和话题都会搜到。"
-      : {[V.RECENT]: "最近 30 天没有取消喜欢或收藏的视频。", [V.NEW]: "最近 30 天没有新喜欢或新收藏的视频。", [V.FOLDERS]: state.v.lib === "L" ? "收藏夹只属于收藏，切到「收藏」再看。" : "还没有放进收藏夹的视频。"}[view] ?? (state.v.lib === "L" && !vdata.items.some((d) => d.L) ? "喜欢还没有导入。" : "这里还没有视频。");
-    return show(`<div class="state"><h2>${searching ? "没有匹配的视频" : "这里还是空的"}</h2><p>${why}</p></div>`);
+    const nn = noun(), kn = libName("K");
+    const why = searching ? (isX() ? "换个关键词试试，正文和作者都会搜到。" : "换个关键词试试，文案、作者和话题都会搜到。")
+      : {[V.RECENT]: `最近 30 天没有取消喜欢或${kn}的${nn}。`, [V.NEW]: `最近 30 天没有新喜欢或新${kn}的${nn}。`, [V.FOLDERS]: state.v.lib === "L" ? "收藏夹只属于收藏，切到「收藏」再看。" : "还没有放进收藏夹的视频。"}[view] ?? (state.v.lib === "L" && !vdata.items.some((d) => d.L) ? "喜欢还没有导入。" : `这里还没有${nn}。`);
+    return show(`<div class="state"><h2>${searching ? `没有匹配的${nn}` : "这里还是空的"}</h2><p>${why}</p></div>`);
   }
   const head = folder ? crumb(V.FOLDERS, folder, pool.length) : "";
   if (folder) {
@@ -762,16 +775,17 @@ function renderV() {
 }
 // 侧栏四个入口，两页同一个样子；配色按位置固定：全部靛蓝、特别关注与收藏夹琥珀、新增绿、取消红
 const PIN_PAL = ["人工智能", "幽默搞笑", "健康医疗", "历史人文"];
-const pinBtn = (v, icon, n, i) => `<button class="pin grain" data-v="${v}" style="${palVars(PIN_PAL[i])}">${motif(PIN_PAL[i], 120, 100)}<span class="ico">${icon}</span><span class="ft"><span class="lab">${v}</span><span class="big num">${n.toLocaleString()}</span></span></button>`;
+const pinBtn = (v, icon, n, i) => `<button class="pin grain" data-v="${v}" style="${palVars(PIN_PAL[i])}">${motif(PIN_PAL[i], 120, 100)}<span class="ico">${icon}</span><span class="ft"><span class="lab">${vLabel(v)}</span><span class="big num">${n.toLocaleString()}</span></span></button>`;
 function renderSideV() {
   if (!vdata) return;
   const count = (view) => vdata.items.filter((d) => vIn(d, view)).length;
-  $("pins").innerHTML = [V.ALL, V.FOLDERS, V.NEW, V.RECENT].map((v, i) => pinBtn(v, PIN_ICON[v], count(v), i)).join("");
+  // 没有收藏夹的平台不列收藏夹入口；配色仍按原来的位置取
+  $("pins").innerHTML = [V.ALL, V.FOLDERS, V.NEW, V.RECENT].map((v, i) => v === V.FOLDERS && !hasFolders() ? "" : pinBtn(v, PIN_ICON[v], count(v), i)).join("");
   const counts = Object.fromEntries(vdata.categories.map((c) => [c, count(c)]));
-  const order = state.catSort === "count" ? [...vdata.categories].sort((a, b) => counts[b] - counts[a]) : vdata.categories;
+  const order = state.v.catSort === "name" ? [...vdata.categories].sort(byName) : [...vdata.categories].sort((a, b) => counts[b] - counts[a]);
   $("cats").classList.remove("sortable");
-  $("cats").innerHTML = order.filter((c) => counts[c]).map((c) => `<button class="cat" data-v="${esc(c)}">${tile(c)}<span class="tx" title="${counts[c].toLocaleString()} 个视频"><b>${esc(c)}</b><span class="num">${counts[c].toLocaleString()}</span></span></button>`).join("");
-  syncSort("catSort", state.catSort);
+  $("cats").innerHTML = order.filter((c) => counts[c]).map((c) => `<button class="cat" data-v="${esc(c)}">${tile(c)}<span class="tx" title="${counts[c].toLocaleString()} 个${noun()}"><b>${esc(c)}</b><span class="num">${counts[c].toLocaleString()}</span></span></button>`).join("");
+  syncSort("catSort", state.v.catSort);
   markCurrent();
 }
 // 侧栏顶部的平台切换，博主、内容两页共用；没有「全部平台」，总是停在某一个平台上
@@ -800,7 +814,7 @@ function buildTabs() {
   $("tabs").hidden = !on;
   if (!on) return;
   const n = (k) => vdata.items.filter((d) => d[k] && !d[k].x).length;
-  $("tabs").innerHTML = [["K", "收藏"], ["L", "喜欢"]].map(([k, name]) =>
+  $("tabs").innerHTML = [["K", libName("K")], ["L", "喜欢"]].map(([k, name]) =>
     `<button role="tab" aria-selected="${state.v.lib === k}" data-lib="${k}">${TAB_ICON[k]}${name}<em class="num">${n(k).toLocaleString()}</em></button>`).join("");
 }
 function applyV(raw) {
@@ -899,11 +913,11 @@ function toggleFolder(d, name) {
 // 视频卡片的菜单：收藏里先列收藏夹（所在的打勾，点一下加入或移出），再列每一边各自的分类（两个库各自独立），最后是「取消收藏、取消喜欢」或「恢复」
 function videoMenu(d) {
   const ks = libsOf(d);
-  const lists = ks.filter((k) => !d[k].x).map((k) => (ks.length > 1 ? `<div class="mh">${LIBS[k]}的分类</div>` : `<div class="mh">分类</div>`)
+  const lists = ks.filter((k) => !d[k].x).map((k) => (ks.length > 1 ? `<div class="mh">${libName(k)}的分类</div>` : `<div class="mh">分类</div>`)
     + (vdata.cats[k] ?? []).map((c) => `<button role="menuitemradio" data-lib="${k}" data-cat="${esc(c)}" aria-checked="${d[k].c === c}">${CHECK_ICON}<b>${esc(c)}</b></button>`).join("")).join("");
-  const folds = state.v.lib === "K" && d.K && !d.K.x ? `<div class="mh">收藏夹</div>` + [STARRED, ...vdata.folders].map((f) =>
+  const folds = state.v.lib === "K" && d.K && !d.K.x && hasFolders() ? `<div class="mh">收藏夹</div>` + [STARRED, ...vdata.folders].map((f) =>
     `<button role="menuitemcheckbox" data-folder="${esc(f)}" aria-checked="${inFolder(d, f)}">${CHECK_ICON}<b>${esc(f)}</b></button>`).join("") + `<div class="sep"></div>` : "";
-  const acts = ks.map((k) => d[k].x ? `<button role="menuitem" data-lib="${k}" data-act="restore">恢复${LIBS[k]}</button>` : `<button role="menuitem" class="warn" data-lib="${k}" data-act="cancel">标记取消${LIBS[k]}</button>`).join("");
+  const acts = ks.map((k) => d[k].x ? `<button role="menuitem" data-lib="${k}" data-act="restore">恢复${libName(k)}</button>` : `<button role="menuitem" class="warn" data-lib="${k}" data-act="cancel">标记取消${libName(k)}</button>`).join("");
   return (folds || lists ? `<div class="cmlist">${folds}${lists}</div><div class="sep"></div>` : "") + acts;
 }
 function videoMenuPick(d, it) {
@@ -914,10 +928,10 @@ function videoMenuPick(d, it) {
     if (it.dataset.cat !== d[k].c) vchange(d, k, {c: it.dataset.cat}, "/video/category", {category: it.dataset.cat}, "分类");
   } else if (it.dataset.act === "cancel") {
     const date = nowLocal();
-    vchange(d, k, {x: 1, d: date}, "/video/cancel", {on: true, date}, `取消${LIBS[k]}`);
+    vchange(d, k, {x: 1, d: date}, "/video/cancel", {on: true, date}, `取消${libName(k)}`);
   } else if (it.dataset.act === "restore") {
     const date = nowLocal();
-    vchange(d, k, {x: 0, d: "", j: date}, "/video/cancel", {on: false, date}, `恢复${LIBS[k]}`);
+    vchange(d, k, {x: 0, d: "", j: date}, "/video/cancel", {on: false, date}, `恢复${libName(k)}`);
   }
 }
 
@@ -990,6 +1004,9 @@ function loadW(silent) {
     });
 }
 // 侧栏：两个入口，下面是公众号列表（像抖音的分类），可按篇数或名称排
+// 内容页的分类排序菜单：数量从多到少，或按名称
+const vSortMenu = () => `<div class="mh">分类排序</div>` + [["count", `${noun()}数`, "从多到少"], ["name", "名称", "按拼音从 A 到 Z"]].map(([v, b, sm]) =>
+  `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
 const W_SORT_MENU = `<div class="mh">公众号排序</div>` + [["count", "篇数", "从多到少"], ["name", "名称", "按拼音从 A 到 Z"]].map(([v, b, sm]) =>
   `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
 function renderSideW() {
@@ -1138,11 +1155,12 @@ function setMode(m) {
   const wx = isWx();
   state.mode = m; store.set("mode", m);
   state.q = ""; $("q").value = "";
-  const hint = wx ? "搜索标题或公众号" : m === "videos" ? "搜索文案、作者或话题" : "搜索账号名称或简介";
+  const vhint = isX() ? "搜索正文或作者" : "搜索文案、作者或话题";
+  const hint = wx ? "搜索标题或公众号" : m === "videos" ? vhint : "搜索账号名称或简介";
   $("q").placeholder = hint;
-  $("q").setAttribute("aria-label", wx ? hint : m === "videos" ? "搜索文案、作者或话题" : "搜索名称或简介");
+  $("q").setAttribute("aria-label", wx ? hint : m === "videos" ? vhint : "搜索名称或简介");
   $("mode").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
-  $("arrange").querySelector(".menu").innerHTML = `<div class="mh">${m === "videos" ? "视频排序" : "账号排序"}</div>` + ARRANGE_MENU[m].map(([v, b, sm]) =>
+  $("arrange").querySelector(".menu").innerHTML = `<div class="mh">${m === "videos" ? `${noun()}排序` : "账号排序"}</div>` + ARRANGE_MENU[m].map(([v, b, sm]) =>
     `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
   syncSort("arrange", m === "videos" ? state.v.arrange : state.arrange);
   buildPlats();
@@ -1163,7 +1181,10 @@ function renderSide() {
   if (isWx()) return renderSideW();
   // 微信页把这一栏换成了公众号，回到抖音时换回来
   document.querySelector(".sec > span").textContent = "分类";
-  if ($("catSort").querySelector(".menu").innerHTML !== CAT_SORT_MENU) { $("catSort").querySelector(".menu").innerHTML = CAT_SORT_MENU; syncSort("catSort", state.catSort); }
+  // 内容页的分类按数量或名称排，博主页按数量或自定义顺序排，菜单各用各的
+  const menu = $("catSort").querySelector(".menu"), want = state.mode === "videos" ? vSortMenu() : CAT_SORT_MENU;
+  if (menu.innerHTML !== want) menu.innerHTML = want;
+  syncSort("catSort", state.mode === "videos" ? state.v.catSort : state.catSort);
   if (state.mode === "videos") return renderSideV();
   const live = data.items.filter((d) => !d.x);
   const lists = {[ALL]: live, [STAR]: live.filter((d) => d.s), [NEW]: live.filter((d) => d.j >= data.cutoff), [RECENT]: data.items.filter((d) => d.x)};
@@ -1480,7 +1501,8 @@ $("cats").addEventListener("dragend", () => {
   saveOrder();
 });
 $("cats").addEventListener("keydown", (e) => {
-  if (state.catSort !== "custom" || !e.altKey || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+  // 内容页的分类不能调顺序
+  if (state.mode === "videos" || isWx() || state.catSort !== "custom" || !e.altKey || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
   const b = e.target.closest(".cat"); if (!b) return;
   e.preventDefault();
   const sib = e.key === "ArrowUp" ? b.previousElementSibling : b.nextElementSibling?.nextElementSibling ?? null;
@@ -1493,7 +1515,7 @@ $("cats").addEventListener("keydown", (e) => {
 // 排序菜单：按钮上显示当前排法，点开是带勾选的单选菜单；选中、点外面或按 Esc 都会收起
 const SORT_LABEL = {catSort: {count: "账号数", custom: "自定义"}, arrange: {follow: "关注先后", band: "粉丝数", name: "名称", time: "发布时间", likes: "点赞数"}};
 function syncSort(id, val) {
-  $(id).querySelector(".lab").textContent = id === "catSort" && isWx() ? (val === "name" ? "名称" : "篇数") : id === "catSort" && state.mode === "videos" && val === "count" ? "视频数" : SORT_LABEL[id][val];
+  $(id).querySelector(".lab").textContent = id === "catSort" && isWx() ? (val === "name" ? "名称" : "篇数") : id === "catSort" && state.mode === "videos" ? (val === "name" ? "名称" : `${noun()}数`) : SORT_LABEL[id][val];
   $(id).querySelectorAll("[role=menuitemradio]").forEach((m) => m.setAttribute("aria-checked", String(m.dataset.val === val)));
 }
 function toggleMenu(id, open) {
@@ -1518,7 +1540,7 @@ function onSort(id, pick) {
   };
 }
 document.addEventListener("click", (e) => { if (!e.target.closest(".sort")) { toggleMenu("catSort", false); toggleMenu("arrange", false); } });
-onSort("catSort", (v) => { if (isWx()) { state.w.catSort = v; store.set("wcatSort", v); } else { state.catSort = v; store.set("catSort", v); } renderSide(); });
+onSort("catSort", (v) => { if (isWx()) { state.w.catSort = v; store.set("wcatSort", v); } else if (state.mode === "videos") { state.v.catSort = v; store.set("vcatSort", v); } else { state.catSort = v; store.set("catSort", v); } renderSide(); });
 onSort("arrange", (v) => {
   if (state.mode === "videos") { state.v.arrange = v; store.set("varrange", v); } else { state.arrange = v; store.set("arrange", v); }
   render(); $("panel").scrollTo({top: 0});
