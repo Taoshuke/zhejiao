@@ -146,6 +146,12 @@ export class SyncDebouncer extends DurableObject {
   async pendingFull() {
     return { full: (await this.load()).full.length > 0, failed: (await this.ctx.storage.get("fullFailed")) ?? null };
   }
+
+  // 有没有还没启动的网页改动（按页面同步的行或分类顺序）
+  async pendingPages() {
+    const job = await this.load();
+    return job.pages.length > 0 || job.order;
+  }
 }
 
 // 页面网址：/<平台>（博主），/creator 同博主，/collect 收藏，/like 喜欢；没有数据库的平台也认，页面上自己换到有数据的平台

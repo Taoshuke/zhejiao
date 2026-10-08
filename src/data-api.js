@@ -81,9 +81,32 @@ async function failedStep(env, runId) {
   return "";
 }
 
+// 网页改动触发的按页面同步（?kind=pages）：since 之后建的这类运行，有一次失败就报失败；
+// 还有没跑完的，或合并器里还有待启动的改动，就是进行中；都跑完了才算成功。网页拿它在后台核对改动有没有进数据文件
+async function pagesStatus(env, since) {
+  const res = await github(env, "actions/workflows/sync-follows.yml/runs?per_page=20&event=workflow_dispatch");
+  if (!res.ok) throw new Error(`GitHub ${res.status}`);
+  const { workflow_runs: runs = [] } = await res.json();
+  const mine = runs.filter((r) => r.display_title === "sync-follows pages" && Date.parse(r.created_at) >= since);
+  const failed = mine.find((r) => r.status === "completed" && r.conclusion !== "success");
+  if (failed) return json({ state: "failure", conclusion: failed.conclusion, step: await failedStep(env, failed.id), url: failed.html_url });
+  if (mine.some((r) => r.status !== "completed")) return json({ state: "running" });
+  if (await debouncer(env).pendingPages()) return json({ state: "waiting" });
+  return json({ state: mine.length ? "success" : "not-started" });
+}
+
 export async function syncStatus(request, env) {
-  const since = Date.parse(new URL(request.url).searchParams.get("since") ?? "");
+  const params = new URL(request.url).searchParams;
+  const since = Date.parse(params.get("since") ?? "");
   if (Number.isNaN(since)) return json({ error: "bad since" }, 400);
+  if (params.get("kind") === "pages") {
+    try {
+      return await pagesStatus(env, since);
+    } catch (err) {
+      console.error(`pages sync status failed: ${err.message}`);
+      return json({ state: "unknown", error: err.message }, 502);
+    }
+  }
   try {
     const res = await github(env, "actions/workflows/sync-follows.yml/runs?per_page=10&event=workflow_dispatch");
     if (!res.ok) throw new Error(`GitHub ${res.status}`);

@@ -11,7 +11,7 @@
 ## 2. Notion
 
 1. 按 [notion-schema.md](notion-schema.md) 建好要用的数据库。不用的平台可以不建，相应地在 `src/platforms.mjs` 里删掉那一项。
-   - 抖音的关注、喜欢、收藏，X 的关注、书签、喜欢，都可以用 `tools/` 里的脚本导出后导入，见 [tools/README.md](../tools/README.md)。
+   - 抖音的关注、喜欢、收藏，X 的关注、书签、喜欢，都可以用 `tools/` 里的脚本导出后导入，见 [tools/README.md](../tools/README.md)。小红书没有附带导出工具，按库结构整理好后导入即可。
 2. 在 <https://www.notion.so/profile/integrations> 建两个内部连接：
    - **只读连接**：权限只勾「读取内容」，给同步任务用。
    - **写入连接**：勾「读取内容」「更新内容」「插入内容」，给 Worker 用（网页上的改分类、标星、收藏夹等）。
@@ -78,7 +78,7 @@ python -m http.server 8080 -d public
 1. `src/platforms.mjs`：`NAMES` 里加英文名与中文名，`DATABASES` 里填它的数据源 ID；
 2. `public/app.html`：`PLATFORM_LIST` 与 `ENABLED` 跟着改；
 3. `public/index.html`：`PLATS` 里给它配色，首页卡片上的几个数字在 `platCard` 里按平台写；
-4. 结构和抖音一样（博主、收藏、喜欢）的平台可以直接复用现有的页面与同步脚本，X 就是这样接进来的，页面上的叫法差异见 `app.html` 里的 `isX`；
+4. 结构和抖音一样（博主、收藏、喜欢）的平台可以直接复用现有的页面与同步脚本，X 与小红书就是这样接进来的，页面上的叫法差异见 `app.html` 里的 `isX` 与 `isRed`；
 5. 数据结构与现有平台不同时（比如微信），参照 `scripts/sync-wechat.mjs` 写一个同步脚本，并在工作流里加一步。
 
 用不到某个平台时，把它从 `DATABASES` 和 `ENABLED` 里删掉，首页 `PLATS` 里它的配色改成 `null`，卡片就会显示为未接入。

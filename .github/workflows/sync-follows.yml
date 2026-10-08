@@ -41,7 +41,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # 检出 main 的最新提交，不用启动那一刻的版本：几次同步排队依次跑，排在后面的要接着前一次推上去的数据算，
+      # 否则在旧数据上算完再推会和前一次冲突，这次的改动就丢了
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -73,17 +77,32 @@ jobs:
           SYNC_PLATFORMS: ${{ inputs.platforms }}
           SYNC_PAGES: ${{ inputs.pages }}
       # full 每次都写文件，一定有提交；pages 只在那几行确实变了时才写
+      # 推送前远端又多了提交（手动跑的同步等）时，变基冲突就回到远端最新版本，把这次的几行重新读一遍再推，最多重算 2 次；
+      # 这不是对失败请求的重试，是换到最新数据上重新算
       - name: 提交到仓库
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          SYNC_PLATFORMS: ${{ inputs.platforms }}
+          SYNC_PAGES: ${{ inputs.pages }}
+          SYNC_ORDER: ${{ inputs.order }}
         run: |
-          # 第一次同步时数据文件还没进版本库，先登记一下，git diff 才看得到它们
-          git add -f -N public/data/ 2>/dev/null || true
-          if ! git diff --quiet; then
-            git config user.name "follows-bot"
-            git config user.email "actions@users.noreply.github.com"
+          git config user.name "follows-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            # 第一次同步时数据文件还没进版本库，先登记一下，git diff 才看得到它们
+            git add -f -N public/data/ 2>/dev/null || true
+            if git diff --quiet; then exit 0; fi
             # public/data/ 在模板仓库的忽略列表里，要强制提交
             git add -f public/data/
             git commit -m "chore: sync follows from Notion"
-            # 手动推送可能同时发生，先变基再推以免撞车
-            git pull --rebase
-            git push
-          fi
+            if git pull --rebase && git push; then exit 0; fi
+            if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then git rebase --abort; fi
+            if [ "$attempt" = 3 ]; then echo "三次都没推上去"; exit 1; fi
+            echo "远端有新提交，在最新版本上重算（第 $attempt 次）"
+            git fetch origin main
+            git reset --hard origin/main
+            node scripts/sync-follows.mjs
+            node scripts/sync-videos.mjs
+            node scripts/sync-wechat.mjs
+          done

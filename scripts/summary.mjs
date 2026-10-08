@@ -1,7 +1,7 @@
 /**
  * 首页用的摘要 public/data/<平台>/summary.json：各平台的数量和最近几条，几 KB，首页只读它，不读几 MB 的数据文件。
  * 由三个同步脚本在写完数据文件后调用，按这个平台现有的数据文件重算；也可以直接运行 node scripts/summary.mjs [平台…]，不写平台就是全部。
- * 抖音与 X（k 是书签）：f 关注中的博主数，k、l 收藏、喜欢里没取消的条数，recent 最近关注的博主与最近收藏的视频；
+ * 抖音、X（k 是书签）与小红书：f 关注中的博主数，k、l 收藏、喜欢里没取消的条数，recent 最近关注的博主与最近收藏的视频；
  * 微信：k 文章数，a 公众号数，recent 最近收藏的文章。recent 里每条：type（follow、collect、article），t 标题或名字，a 作者、公众号或头像，j 时间，u 链接，p 网页里的去处。
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -48,7 +48,7 @@ function wechat() {
   };
 }
 
-const BUILDERS = { douyin: () => creatorsAndVideos("douyin"), wechat, x: () => creatorsAndVideos("x") };
+const BUILDERS = { douyin: () => creatorsAndVideos("douyin"), wechat, x: () => creatorsAndVideos("x"), rednote: () => creatorsAndVideos("rednote") };
 
 export function writeSummary(slug) {
   const summary = BUILDERS[slug]?.();

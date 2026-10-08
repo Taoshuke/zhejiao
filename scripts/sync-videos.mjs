@@ -10,7 +10,7 @@
  * 同一视频在几个收藏夹里就有几行。收藏夹只属于收藏。
  * 文件按视频合并成一条，两边的记录分别放在 L（喜欢）、K（收藏）下，收藏夹归属放在 F 下。短键名：
  *   v 视频 ID（X 是帖子 ID），u 视频链接（X 是帖子链接），t 文案（X 是正文，前 300 字），a 作者，au 作者主页，n 图文（1），du 时长秒，pt 发布时间，lk 点赞数，g 话题
- *   L、K 里：id 页面 ID，c 分类，x 已取消（1），d 取消时刻，j 收藏或喜欢的时刻（「添加时间」）
+ *   L、K 里：id 页面 ID，c 分类，x 已取消（1），d 取消时刻，j 收藏或喜欢的时刻（「添加时间」），s 标了星（1，只有 X 与小红书）
  *   F 里：s 标了星（1），f 所在的收藏夹（不含星标）
  * 顶层 cats 是两个库各自的分类选项顺序，folders 是收藏夹库的收藏夹选项（不含星标）。
  */
@@ -23,8 +23,8 @@ const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "
 const fileOf = (slug) => join(ROOT, `public/data/${slug}/videos.json`);
 // 两个库在 src/platforms.mjs 里的键名，和页面上的叫法
 const LIBS = { K: { key: "collect", label: "收藏" }, L: { key: "like", label: "喜欢" } };
-// X 的收藏叫书签，库名是「X 书签」「X 喜欢」，只用在日志和报错里
-const libTitle = (slug, lib) => slug === "x" ? `X ${lib === "K" ? "书签" : "喜欢"}` : `${NAMES[slug]}${LIBS[lib].label}`;
+// X 的收藏叫书签，库名是「X 书签」「X 喜欢」；小红书的喜欢叫点赞。只用在日志和报错里
+const libTitle = (slug, lib) => slug === "x" ? `X ${lib === "K" ? "书签" : "喜欢"}` : slug === "rednote" ? `小红书${lib === "K" ? "收藏" : "点赞"}` : `${NAMES[slug]}${LIBS[lib].label}`;
 const TIME = "添加时间";
 const STARRED = "星标";
 const NOTION_VERSION = "2025-09-03";
@@ -68,16 +68,18 @@ async function queryAll(dataSourceId, name) {
 
 const text = (richText) => (richText ?? []).map((t) => t.plain_text).join("");
 const compact = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== 0 && !(Array.isArray(v) && !v.length)));
-// 抖音 /video/、/note/，X /status/ 后面的数字
-const videoId = (url) => url?.match(/\/(?:video|note|status)\/(\d+)/)?.[1] ?? null;
-// X 的帖子库用「帖子链接」「正文」两列，其余列名与抖音相同
-const linkOf = (p) => p["视频链接"]?.url ?? p["帖子链接"]?.url;
+// 抖音 /video/、/note/，X /status/ 后面的数字；小红书 /explore/ 后面 24 位的笔记编号
+const videoId = (url) => url?.match(/\/(?:video|note|status)\/(\d+)/)?.[1] ?? url?.match(/\/explore\/([0-9a-f]{24})/)?.[1] ?? null;
+// X 的帖子库用「帖子链接」「正文」两列，小红书用「笔记链接」「正文」，其余列名与抖音相同
+const linkOf = (p) => p["视频链接"]?.url ?? p["帖子链接"]?.url ?? p["笔记链接"]?.url;
+// 小红书的名称是笔记标题，正文里不含标题，两段接起来；X 的名称是正文第一行，不重复接
+const textOf = (p) => text(p["文案"]?.rich_text) || (p["笔记链接"] ? [text(p["名称"]?.title), text(p["正文"]?.rich_text)].filter(Boolean).join("\n") : text(p["正文"]?.rich_text)) || text(p["名称"]?.title);
 
 // 两个库共有的视频资料
 function shared(p) {
   return compact({
     u: linkOf(p),
-    t: (text(p["文案"]?.rich_text) || text(p["正文"]?.rich_text) || text(p["名称"]?.title)).slice(0, 300),
+    t: textOf(p).slice(0, 300),
     a: text(p["作者"]?.rich_text),
     au: p["作者主页链接"]?.url,
     n: p["类型"]?.select?.name === "图文" ? 1 : 0,
@@ -95,6 +97,8 @@ function record(page) {
     x: p["取消日期"]?.date ? 1 : 0,
     d: p["取消日期"]?.date?.start,
     j: p[TIME]?.date?.start,
+    // X 与小红书的星标是库里的「星标」勾选列（抖音的星标在收藏夹库，见 F）
+    s: p[STARRED]?.checkbox ? 1 : 0,
   });
 }
 

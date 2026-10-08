@@ -195,6 +195,32 @@ async function videoCancel(env, { platform, lib, id, on, date }) {
   return updateVideo(env, platform, lib, id, { "取消日期": { date: null }, [TIME]: { date: { start: date } } });
 }
 
+// ===== 改标题和文字：写「名称」和文字列 =====
+const TEXT_PLATFORMS = new Set(["douyin", "x", "rednote"]);
+// 抖音视频库的文字列叫「文案」，X 与小红书叫「正文」
+const textColumn = (platform) => platform === "douyin" ? "文案" : "正文";
+const plain = (rich) => (rich ?? []).map((t) => t.plain_text).join("");
+// Notion 每段文字最多 2000 字，最多 100 段
+const richOf = (s) => { const out = []; for (let i = 0; i < s.length && out.length < 100; i += 2000) out.push({ type: "text", text: { content: s.slice(i, i + 2000) } }); return out; };
+// 打开编辑框时读这一行现在的标题和正文；数据文件里的文字截到 300 字，不能拿来改
+async function videoTextGet(env, { platform, lib, id }) {
+  if (!TEXT_PLATFORMS.has(platform)) return fail(400, "bad request");
+  const page = await videoRow(env, platform, lib, id);
+  if (!page) return fail(404, "not a video row");
+  return Response.json({ title: plain(page.properties["名称"]?.title), body: plain(page.properties[textColumn(platform)]?.rich_text) });
+}
+// 同一条在收藏（书签）和点赞（喜欢）两边各有一行时，两行一起改，否则同步时会被另一行的旧文字盖掉
+async function videoText(env, { platform, rows, title, body }) {
+  title = typeof title === "string" ? title.replace(/\s+/g, " ").trim() : "";
+  body = typeof body === "string" ? body.replace(/\r\n/g, "\n").trim() : "";
+  if (!TEXT_PLATFORMS.has(platform) || !Array.isArray(rows) || !rows.length || rows.length > 2 || !title || title.length > 300 || body.length > 20000) return fail(400, "bad request");
+  for (const { lib, id } of rows) if (!(await videoRow(env, platform, lib, id))) return fail(404, "not a video row");
+  const properties = { "名称": { title: richOf(title) }, [textColumn(platform)]: { rich_text: richOf(body) } };
+  for (const { id } of rows) await notion(env, `pages/${id}`, { method: "PATCH", body: JSON.stringify({ properties }) });
+  await syncLater(env, { pages: rows.map((r) => r.id) });
+  return Response.json({ ok: true });
+}
+
 // ===== 收藏夹：网页传视频 ID（v）和收藏库那一行的页面 ID（kid） =====
 const videoIdOf = (url) => url?.match(/\/(?:video|note)\/(\d+)/)?.[1] ?? null;
 // 读出来的属性值换成写入用的格式
@@ -223,10 +249,11 @@ async function folderRows(env, source, url, folder) {
   return res.results;
 }
 // 放进：没有这一行就从收藏库复制一行新建；移出：把这一行移进回收站，30 天内可在 Notion 里恢复
-async function setFolder(env, { platform, v, kid, folder, on }) {
+// lib 是复制来源那一行在哪个库：收藏夹只从收藏复制；星标也可以从喜欢复制
+async function setFolder(env, { platform, v, kid, lib = "K", folder, on }) {
   const source = folderSource(platform);
-  if (!source || typeof on !== "boolean" || typeof folder !== "string" || !folder) return fail(400, "bad request");
-  const page = await videoRow(env, platform, "K", kid);
+  if (!source || typeof on !== "boolean" || typeof folder !== "string" || !folder || (lib !== "K" && folder !== STARRED)) return fail(400, "bad request");
+  const page = await videoRow(env, platform, lib, kid);
   if (!page) return fail(404, "not a video row");
   const url = page.properties["视频链接"]?.url;
   if (!url || videoIdOf(url) !== v) return fail(400, "bad request");
@@ -245,8 +272,15 @@ async function setFolder(env, { platform, v, kid, folder, on }) {
   if (rows.length) await syncLater(env, { pages: rows.map((r) => r.id) });
   return Response.json({ ok: true });
 }
-// 星标就是放进「星标」这个收藏夹
-const videoStar = (env, { platform, v, kid, on }) => setFolder(env, { platform, v, kid, folder: STARRED, on });
+// 有收藏夹库的平台（抖音），星标就是放进「星标」这个收藏夹；没有的（X、小红书），勾这条在各个库里那几行的「星标」列
+async function videoStar(env, { platform, v, kid, lib, rows, on }) {
+  if (folderSource(platform)) return setFolder(env, { platform, v, kid, lib, folder: STARRED, on });
+  if (typeof on !== "boolean" || !Array.isArray(rows) || !rows.length || rows.length > 2) return fail(400, "bad request");
+  for (const r of rows) if (!(await videoRow(env, platform, r.lib, r.id))) return fail(404, "not a video row");
+  for (const r of rows) await notion(env, `pages/${r.id}`, { method: "PATCH", body: JSON.stringify({ properties: { [STARRED]: { checkbox: on } } }) });
+  await syncLater(env, { pages: rows.map((r) => r.id) });
+  return Response.json({ ok: true });
+}
 // 新建收藏夹：「收藏夹」单选加一个选项，已有选项连同颜色原样带上。名字规则与网页一致
 async function newFolder(env, { platform, name }) {
   const source = folderSource(platform);
@@ -303,6 +337,19 @@ async function wechatTitle(env, { id, title }) {
   return Response.json({ ok: true });
 }
 
+// 改一篇的分类（内容视图用）：只能改成「分类」单选已有的选项
+async function wechatCategory(env, { id, category: name }) {
+  const source = DATABASES.wechat?.articles;
+  if (!source || !PAGE_ID.test(id ?? "") || typeof name !== "string" || !name) return fail(400, "bad request");
+  const schema = await notion(env, `data_sources/${source}`);
+  if (!(schema.properties["分类"]?.select?.options ?? []).some((o) => o.name === name)) return fail(409, "categories changed, sync from Notion first");
+  const page = await notion(env, `pages/${id}`);
+  if (page.parent?.data_source_id !== source) return fail(404, "not an article row");
+  await notion(env, `pages/${id}`, { method: "PATCH", body: JSON.stringify({ properties: { "分类": { select: { name } } } }) });
+  await syncLater(env, { pages: [id] });
+  return Response.json({ ok: true });
+}
+
 // 删除一篇：先确认是「公众号」库的行，再移进 Notion 回收站，30 天内可在 Notion 里恢复
 async function wechatDelete(env, { id }) {
   const source = DATABASES.wechat?.articles;
@@ -318,8 +365,11 @@ const ROUTES = {
   "/api/wechat/account": wechatAccount,
   "/api/wechat/delete": wechatDelete,
   "/api/wechat/title": wechatTitle,
+  "/api/wechat/category": wechatCategory,
   "/api/video/category": videoCategory,
   "/api/video/cancel": videoCancel,
+  "/api/video/text": videoText,
+  "/api/video/text/get": videoTextGet,
   "/api/video/star": videoStar,
   "/api/video/folder": setFolder,
   "/api/video/folder/new": newFolder,

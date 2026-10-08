@@ -6,6 +6,7 @@
  *   不读别的行，Notion 里还没手动同步的改动不会被顺带带进网页。
  * 文件名沿用 videos.json：Workers Builds 的监视路径已排除它，Worker 也只认 creators、videos 两种文件，同步提交不触发部署。
  * 短键名：id 页面 ID，n 标题（「标题」列，空的时候用「名称」），a 公众号，u 原文链接，j 收藏日期，o 顺序（收藏列表里的先后，1 是最早的），q 公众号待核（1）。
+ * c 分类（按内容分的分类，网页上的「内容」视图用）；顶层 cats 是「分类」单选的选项顺序，全表重读时更新。
  * 条目按收藏日期从新到旧、同一天按顺序从新到旧排，和微信收藏列表一致。
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
@@ -51,6 +52,7 @@ function toItem(page) {
     j: p["收藏时间"]?.date?.start,
     o: p["顺序"]?.number,
     q: p["公众号待核"]?.checkbox ? 1 : undefined,
+    c: p["分类"]?.select?.name,
   };
   for (const [k, v] of Object.entries(item)) if (v === null || v === undefined || v === "") delete item[k];
   return item;
@@ -75,7 +77,7 @@ async function syncPages(source, readAt) {
   if (!mine) return;
   const items = order([...byId.values()].filter((it) => it.u && it.n));
   if (JSON.stringify(items) === JSON.stringify(existing.items)) return console.log(`按页面：「公众号」读了 ${mine} 行，没有变化，不写文件`);
-  writeFileSync(OUT, JSON.stringify({ updated: readAt, items }));
+  writeFileSync(OUT, JSON.stringify({ updated: readAt, cats: existing.cats ?? [], items }));
   console.log(`按页面：「公众号」读了 ${mine} 行，public/data/wechat/videos.json 共 ${items.length} 条`);
   writeSummary("wechat");
 }
@@ -85,6 +87,9 @@ async function main() {
   if (!source) return;
   const readAt = new Date().toISOString();
   if (!fullPlatforms(process.env).has("wechat")) return syncPages(source, readAt);
+  const schema = await notion(`data_sources/${source}`);
+  if (!schema) throw new Error("读不到「公众号」数据库，只读的 Notion 连接是否还能访问它");
+  const cats = (schema.properties["分类"]?.select?.options ?? []).map((o) => o.name);
   const items = [];
   let cursor;
   do {
@@ -101,7 +106,7 @@ async function main() {
   if (!shown.length) throw new Error("「公众号」没有读到任何条目，保留现有文件");
   order(shown);
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, JSON.stringify({ updated: readAt, items: shown }));
+  writeFileSync(OUT, JSON.stringify({ updated: readAt, cats, items: shown }));
   console.log(`全量：public/data/wechat/videos.json 共 ${shown.length} 条`);
   writeSummary("wechat");
 }
