@@ -967,7 +967,7 @@ function renderV() {
   if (tiles) return show(folderTiles());
   if (!pool.length) {
     const nn = noun(), kn = libName("K"), ln = libName("L");
-    const why = searching ? (isX() ? "换个关键词试试，正文和作者都会搜到。" : "换个关键词试试，文案、作者和话题都会搜到。")
+    const why = searching ? (isX() ? "换个关键词试试，正文和作者都会搜到。" : isRed() ? "换个关键词试试，标题、正文、作者和话题都会搜到。" : "换个关键词试试，文案、作者和话题都会搜到。")
       : {[V.RECENT]: `最近 30 天没有取消${ln}或${kn}的${nn}。`, [V.NEW]: `最近 30 天没有新${ln}或新${kn}的${nn}。`, [V.FOLDERS]: starPage() ? `在卡片右上角点星标，${nn}就会出现在这里。` : "还没有放进收藏夹的视频。"}[view] ?? (state.v.lib === "L" && !vdata.items.some((d) => d.L) ? `${ln}还没有导入。` : `这里还没有${nn}。`);
     return show(`<div class="state"><h2>${searching ? `没有匹配的${nn}` : "这里还是空的"}</h2><p>${why}</p></div>`);
   }

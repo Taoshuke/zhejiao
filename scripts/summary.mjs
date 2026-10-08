@@ -16,7 +16,7 @@ const time = (s) => Date.parse(s ?? "") || 0;
 // 视频文案去掉话题标签
 const caption = (t) => (t ?? "").replace(/#[^\s#]+/g, "").replace(/\s+/g, " ").trim() || t || "";
 
-// 抖音与 X 的数据结构相同（博主、收藏或书签、喜欢），共用一个
+// 抖音、X 与小红书的数据结构相同（博主、收藏或书签、喜欢），共用一个
 function creatorsAndVideos(slug) {
   const creators = read(slug, "creators"), videos = read(slug, "videos");
   if (!creators && !videos) return null;
