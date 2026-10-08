@@ -4,7 +4,7 @@
 
 Zhejiao is a self-hosted dashboard for the accounts you follow and the things you save. Creators you follow on Douyin and the videos you liked or bookmarked there, accounts you follow on X and the posts you bookmarked or liked, and WeChat articles you saved all live in your own Notion. A clean web page lets you browse them by platform and category, and edit categories, stars, unfollow marks and titles; every edit is written back to Notion. Notion is the default, and you can swap in another database; see [Using a different database](#using-a-different-database).
 
-[中文](README.md)
+[中文](README.md) · [Changelog](CHANGELOG.md) (in Chinese)
 
 ![Home](docs/images/home.jpg)
 
