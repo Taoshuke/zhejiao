@@ -1,9 +1,9 @@
 name: sync-follows
-# 把 Notion「折角」页里各平台的数据库同步成 public/data/<平台>/creators.json（博主）、videos.json（收藏、喜欢、收藏夹；微信是公众号文章）与 summary.json（首页摘要）并提交。
+# 把 Notion「折角」页里各平台的数据库同步成 public/data/<平台>/creators.json（博主）、videos.json（收藏、喜欢；微信是公众号文章，豆瓣是图书）与 summary.json（首页摘要）并提交。
 # 平台与数据库的对应见 src/platforms.mjs。
-# 网页经 Worker 直接从仓库读这两个文件，提交即生效，不经过部署（Workers Builds 的监视路径排除了它们）。
+# 网页经 Worker 直接从仓库读这几个文件，提交即生效，不经过部署（Workers Builds 的监视路径排除了它们）。
 # 只在被启动时运行，没有定时任务：
-# - pages：网页上改了几行，src/worker.js 写进 Notion 后启动，只同步这几行（改了分类顺序、新建了收藏夹时另读选项）；
+# - pages：网页上改了几行，src/worker.js 写进 Notion 后启动，只同步这几行（改了分类顺序时另读选项）；
 # - full：网页上点「从 Notion 同步」，只把当前平台（platforms）的几个库全表重读并提交，同一次运行里其他平台的改动照常按页面同步；
 #   需要时也可以手动运行 gh workflow run sync-follows.yml -f mode=full，不写平台就是全部平台。
 #   脚本批量改完不自动触发。
@@ -26,7 +26,7 @@ on:
         type: string
         default: ""
       order:
-        description: 选项是否变了（博主的分类顺序、新建的收藏夹），1 或 0
+        description: 选项是否变了（博主的分类顺序），1 或 0
         type: string
         default: "0"
 
@@ -51,7 +51,20 @@ jobs:
           node-version: 20
       # 参数走环境变量传给脚本，不拼进命令行
       # 步骤名会显示在网页的同步失败提示里
+      # 网页改过的行在这里各读一次，存进临时文件给下面博主、内容、微信、豆瓣四个脚本共用（见 scripts/pages.mjs），
+      # 同时算出下面几个脚本这次要不要运行，不用运行的跳过（见 scripts/read-pages.mjs）
+      - name: 读取网页改过的行
+        id: pages
+        run: node scripts/read-pages.mjs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          SYNC_PLATFORMS: ${{ inputs.platforms }}
+          SYNC_PAGES: ${{ inputs.pages }}
+          SYNC_ORDER: ${{ inputs.order }}
+          SYNC_PAGES_FILE: ${{ runner.temp }}/pages.json
       - name: 读取 Notion 生成博主数据
+        if: steps.pages.outputs.creators == '1'
         run: node scripts/sync-follows.mjs
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -59,8 +72,9 @@ jobs:
           SYNC_PLATFORMS: ${{ inputs.platforms }}
           SYNC_PAGES: ${{ inputs.pages }}
           SYNC_ORDER: ${{ inputs.order }}
-      # 两个脚本各自只处理属于自己数据库的行
+          SYNC_PAGES_FILE: ${{ runner.temp }}/pages.json
       - name: 读取 Notion 生成内容数据
+        if: steps.pages.outputs.videos == '1'
         run: node scripts/sync-videos.mjs
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -68,14 +82,27 @@ jobs:
           SYNC_PLATFORMS: ${{ inputs.platforms }}
           SYNC_PAGES: ${{ inputs.pages }}
           SYNC_ORDER: ${{ inputs.order }}
+          SYNC_PAGES_FILE: ${{ runner.temp }}/pages.json
       # 微信只有一个库：全表重读，或把网页上改了公众号的几行按页面合并，写 public/data/wechat/videos.json
       - name: 读取 Notion 生成微信数据
+        if: steps.pages.outputs.wechat == '1'
         run: node scripts/sync-wechat.mjs
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           SYNC_MODE: ${{ inputs.mode }}
           SYNC_PLATFORMS: ${{ inputs.platforms }}
           SYNC_PAGES: ${{ inputs.pages }}
+          SYNC_PAGES_FILE: ${{ runner.temp }}/pages.json
+      # 豆瓣只有一个库：全表重读，或把网页上标星、标记取消或恢复的几行按页面合并，写 public/data/douban/videos.json
+      - name: 读取 Notion 生成豆瓣数据
+        if: steps.pages.outputs.douban == '1'
+        run: node scripts/sync-douban.mjs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SYNC_MODE: ${{ inputs.mode }}
+          SYNC_PLATFORMS: ${{ inputs.platforms }}
+          SYNC_PAGES: ${{ inputs.pages }}
+          SYNC_PAGES_FILE: ${{ runner.temp }}/pages.json
       # full 每次都写文件，一定有提交；pages 只在那几行确实变了时才写
       # 推送前远端又多了提交（手动跑的同步等）时，变基冲突就回到远端最新版本，把这次的几行重新读一遍再推，最多重算 2 次；
       # 这不是对失败请求的重试，是换到最新数据上重新算
@@ -86,15 +113,19 @@ jobs:
           SYNC_PLATFORMS: ${{ inputs.platforms }}
           SYNC_PAGES: ${{ inputs.pages }}
           SYNC_ORDER: ${{ inputs.order }}
+          SYNC_PAGES_FILE: ${{ runner.temp }}/pages.json
+          RUN_CREATORS: ${{ steps.pages.outputs.creators }}
+          RUN_VIDEOS: ${{ steps.pages.outputs.videos }}
+          RUN_WECHAT: ${{ steps.pages.outputs.wechat }}
+          RUN_DOUBAN: ${{ steps.pages.outputs.douban }}
         run: |
           git config user.name "follows-bot"
           git config user.email "actions@users.noreply.github.com"
           for attempt in 1 2 3; do
-            # 第一次同步时数据文件还没进版本库，先登记一下，git diff 才看得到它们
-            git add -f -N public/data/ 2>/dev/null || true
-            if git diff --quiet; then exit 0; fi
-            # public/data/ 在模板仓库的忽略列表里，要强制提交
+            # 先加进暂存区再比：新平台第一次同步时数据文件还没进仓库，git diff 看不到未跟踪的文件；
+            # public/data/ 在模板仓库的忽略列表里，要强制加
             git add -f public/data/
+            if git diff --cached --quiet; then exit 0; fi
             git commit -m "chore: sync follows from Notion"
             if git pull --rebase && git push; then exit 0; fi
             if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then git rebase --abort; fi
@@ -102,7 +133,9 @@ jobs:
             echo "远端有新提交，在最新版本上重算（第 $attempt 次）"
             git fetch origin main
             git reset --hard origin/main
-            node scripts/sync-follows.mjs
-            node scripts/sync-videos.mjs
-            node scripts/sync-wechat.mjs
+            node scripts/read-pages.mjs
+            if [ "$RUN_CREATORS" = 1 ]; then node scripts/sync-follows.mjs; fi
+            if [ "$RUN_VIDEOS" = 1 ]; then node scripts/sync-videos.mjs; fi
+            if [ "$RUN_WECHAT" = 1 ]; then node scripts/sync-wechat.mjs; fi
+            if [ "$RUN_DOUBAN" = 1 ]; then node scripts/sync-douban.mjs; fi
           done

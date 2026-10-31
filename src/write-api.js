@@ -1,30 +1,32 @@
 /**
  * 网页上的写入操作：星标、改分类、标记取关与恢复关注、分类排序，以及「从 Notion 同步」；
- * 视频页（抖音收藏、抖音喜欢两个数据库）的改分类、标记取消与恢复，以及收藏的星标、收藏夹（抖音收藏夹数据库）；
- * 微信页改文章的公众号（「公众号」库的「公众号」列，单篇改或整个号改名）、标题（「标题」列，名称跟着标题）与删除文章（移进 Notion 回收站）。
+ * 视频页（抖音、X、小红书各自的收藏、喜欢库）的改分类、标记取消与恢复，星标，改文字，以及收藏和喜欢互加；
+ * 微信页改文章的公众号（「公众号」库的「公众号」列，单篇改或整个号改名）、标题（「标题」列，名称跟着标题）与删除文章（移进 Notion 回收站），
+ * 另有改分类（「分类」单选，内容视图用）；
+ * 豆瓣书架的星标与标记取消、恢复（「豆瓣读书」库的「星标」「取消日期」两列）。
  *
  * 整个网站由 Cloudflare Access 挡在前面，这里再核验一次 Access 签发的登录凭证，
  * 这样即使 Access 某天配错放开了路径，没登录的请求也写不进去。配置为空时一律拒绝。
  *
  * 需要的配置：ACCESS_TEAM_DOMAIN（如 xxx.cloudflareaccess.com）、ACCESS_AUD（应用的 AUD 标签）、
- * ACCESS_EMAIL（允许写入的邮箱）、HOST（网站域名，只接受本站页面发来的写入）；密钥 NOTION_WRITE_TOKEN（有写入权限的 Notion 连接；只改已有的行，
- * 唯一的例外是放进收藏夹：从收藏库复制一行到收藏夹库，移出时把那一行移进 Notion 回收站）。
+ * ACCESS_EMAIL（允许写入的邮箱）、HOST（网站域名，只接受本站页面发来的写入）；密钥 NOTION_WRITE_TOKEN（有写入权限的 Notion 连接；改已有的行，
+ * 收藏和喜欢互加时在目标库新建一行，微信删除文章时把那一行移进 Notion 回收站）。
  * 写进 Notion 后交给 SyncDebouncer：网页改的几行按页面同步进数据文件，Notion 里的其他改动等手动同步。
  */
 import { DATABASES } from "./platforms.mjs";
+import { subcategoriesOf } from "./subcategories.mjs";
+
+// 网页上改分类、子分类时勾上「人工」：这一行是人工定的，本机批量脚本（tools/notion_write.py）一律跳过不改
+const MANUAL = "人工";
 
 // 各平台的数据库见 src/platforms.mjs。博主的行按页面 ID 认，属于任何一个平台的博主库都行；
-// 内容页、分类排序、收藏夹的请求由网页带上平台（platform），只改那个平台的库
+// 内容页、分类排序的请求由网页带上平台（platform），只改那个平台的库
 const CREATOR_SOURCES = new Set(Object.values(DATABASES).map((db) => db.creators).filter(Boolean));
-// 视频库：K 收藏、L 喜欢，时间列都叫「添加时间」
+// 视频库：K 收藏、L 喜欢；三个平台都用「添加顺序」记加入先后，X 与小红书另有「添加时间」（恢复取消时写），抖音没有这一列
 const LIB_KEY = { K: "collect", L: "like" };
 const TIME = "添加时间";
 const videoSource = (platform, lib) => (LIB_KEY[lib] && DATABASES[platform]?.[LIB_KEY[lib]]) || null;
-// 收藏夹库：一个视频放进一个收藏夹就是一行，「收藏夹」单选填那个收藏夹；标星就是放进「星标」
-const folderSource = (platform) => DATABASES[platform]?.folders ?? null;
 const STARRED = "星标";
-// 放进收藏夹时从收藏库那一行复制过去的列；分类不复制，网页显示的分类以收藏库为准
-const COPY = ["名称", "作者", "文案", "话题", "视频链接", "作者主页链接", "发布时间", "时长（秒）", "点赞数", "类型"];
 const NOTION_VERSION = "2025-09-03";
 const PAGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -125,7 +127,24 @@ async function category(env, { id, category: name }) {
   const schema = await notion(env, `data_sources/${row.parent.data_source_id}`);
   const options = schema.properties["分类"]?.select?.options ?? [];
   if (!options.some((o) => o.name === name)) return fail(409, "categories changed, sync from Notion first");
-  return updateRow(env, id, { "分类": { select: { name } } });
+  // 原来的子分类不属于新分类时一起清掉，免得子分类挂在别的分类下面
+  const sub = row.properties["子分类"]?.select?.name;
+  const properties = { "分类": { select: { name } }, [MANUAL]: { checkbox: true } };
+  if (sub && !subcategoriesOf(platformOf(row), name).includes(sub)) properties["子分类"] = { select: null };
+  return updateRow(env, id, properties);
+}
+
+// 博主行属于哪个平台，按它所在的数据库认
+const platformOf = (row) => Object.keys(DATABASES).find((k) => DATABASES[k].creators === row.parent?.data_source_id);
+
+// 改子分类：只能填这一行当前分类下的子分类（见 src/subcategories.mjs），空字符串是清掉
+async function subcategory(env, { id, subcategory: name }) {
+  if (typeof name !== "string") return fail(400, "bad request");
+  const row = await followsRow(env, id);
+  if (!row) return fail(404, "not a follows row");
+  const cat = row.properties["分类"]?.select?.name;
+  if (name && !subcategoriesOf(platformOf(row), cat).includes(name)) return fail(409, "subcategory not under this category, sync from Notion first");
+  return updateRow(env, id, { "子分类": { select: name ? { name } : null }, [MANUAL]: { checkbox: true } });
 }
 
 // 标记取关：勾「已取关」，取关日期填此刻。恢复关注：取消「已取关」、清空取关日期，关注日期填此刻，
@@ -184,18 +203,19 @@ async function videoCategory(env, { platform, lib, id, category: name }) {
   const schema = await notion(env, `data_sources/${source}`);
   const options = schema.properties["分类"]?.select?.options ?? [];
   if (!options.some((o) => o.name === name)) return fail(409, "categories changed, sync from Notion first");
-  return updateVideo(env, platform, lib, id, { "分类": { select: { name } } });
+  return updateVideo(env, platform, lib, id, { "分类": { select: { name } }, [MANUAL]: { checkbox: true } });
 }
-// 标记取消：取消日期填此刻（填了就算取消，库里没有单独的勾选框）。恢复：清空取消日期，添加时间填此刻，出现在「近期新增」。
+// 标记取消：取消日期填此刻（填了就算取消，库里没有单独的勾选框）。恢复：清空取消日期；X 与小红书另把添加时间填此刻，出现在「近期新增」，
+// 抖音的两个库没有添加时间、用「添加顺序」记加入先后，恢复时不动它
 // 时刻由网页传本地时间带时区，只接受与服务器时间相差两天以内的
 async function videoCancel(env, { platform, lib, id, on, date }) {
   if (typeof on !== "boolean" || !videoSource(platform, lib)) return fail(400, "bad request");
   if (!DATE_TIME.test(date ?? "") || Math.abs(Date.parse(date) - Date.now()) > 2 * 864e5) return fail(400, "bad date");
   if (on) return updateVideo(env, platform, lib, id, { "取消日期": { date: { start: date } } });
-  return updateVideo(env, platform, lib, id, { "取消日期": { date: null }, [TIME]: { date: { start: date } } });
+  return updateVideo(env, platform, lib, id, platform === "douyin" ? { "取消日期": { date: null } } : { "取消日期": { date: null }, [TIME]: { date: { start: date } } });
 }
 
-// ===== 改标题和文字：写「名称」和文字列 =====
+// ===== 改标题和正文（抖音、X、小红书都能改，标题写「名称」列，正文写哪一列见下面的 textColumn） =====
 const TEXT_PLATFORMS = new Set(["douyin", "x", "rednote"]);
 // 抖音视频库的文字列叫「文案」，X 与小红书叫「正文」
 const textColumn = (platform) => platform === "douyin" ? "文案" : "正文";
@@ -221,8 +241,45 @@ async function videoText(env, { platform, rows, title, body }) {
   return Response.json({ ok: true });
 }
 
-// ===== 收藏夹：网页传视频 ID（v）和收藏库那一行的页面 ID（kid） =====
-const videoIdOf = (url) => url?.match(/\/(?:video|note)\/(\d+)/)?.[1] ?? null;
+// ===== 收藏和喜欢互加（抖音、X、小红书）：网页传视频 ID（v）、复制来源那一行所在的库（from）和页面 ID（id） =====
+// 卡片底栏的收藏、喜欢按钮在目标库已有这一条时，网页直接用 /video/cancel 标取消或恢复；这里只管「目标库还没有」的情形：
+// 从来源行复制新建，目标库里有的列照抄（含分类、星标），取消日期、添加顺序、添加时间不抄；
+// 添加顺序写当天批次（网页传来的本地日期）、编号接着目标库现有的最大号。万一目标库其实已有这一条（快照还没同步到），就清掉它的取消日期
+const ADD_ORDER = "添加顺序";
+const LINK_COL = { douyin: "视频链接", x: "帖子链接", rednote: "笔记链接" };
+const ITEM_ID = { douyin: /\/(?:video|note)\/(\d+)/, x: /\/status\/(\d+)/, rednote: /\/explore\/([0-9a-f]{24})/ };
+const NO_COPY = new Set(["取消日期", ADD_ORDER, "添加时间"]);
+async function videoOther(env, { platform, v, from, id, date }) {
+  const to = from === "K" ? "L" : from === "L" ? "K" : null;
+  const source = LINK_COL[platform] && to ? videoSource(platform, to) : null;
+  if (!source || !/^[0-9a-z]+$/i.test(v ?? "")) return fail(400, "bad request");
+  if (!DATE_TIME.test(date ?? "") || Math.abs(Date.parse(date) - Date.now()) > 2 * 864e5) return fail(400, "bad date");
+  const page = await videoRow(env, platform, from, id);
+  if (!page) return fail(404, "not a video row");
+  const url = page.properties[LINK_COL[platform]]?.url;
+  if (!url || url.match(ITEM_ID[platform])?.[1] !== v) return fail(400, "bad request");
+  const text = (p) => (p?.rich_text ?? []).map((t) => t.plain_text).join("");
+  const query = (body) => notion(env, `data_sources/${source}/query`, { method: "POST", body: JSON.stringify(body) });
+  const found = (await query({ filter: { property: LINK_COL[platform], url: { equals: url } }, page_size: 1 })).results[0];
+  if (found) {
+    await notion(env, `pages/${found.id}`, { method: "PATCH", body: JSON.stringify({ properties: { "取消日期": { date: null } } }) });
+    await syncLater(env, { pages: [found.id] });
+    return Response.json({ ok: true, id: found.id, c: found.properties["分类"]?.select?.name ?? null, q: text(found.properties[ADD_ORDER]) });
+  }
+  // 「批次 · 编号」越晚越大，按文字从大到小排第一行就是最大号
+  const last = (await query({ filter: { property: ADD_ORDER, rich_text: { is_not_empty: true } }, sorts: [{ property: ADD_ORDER, direction: "descending" }], page_size: 1 })).results[0];
+  const n = Number(text(last?.properties[ADD_ORDER]).match(/(\d+)$/)?.[1] ?? 0) + 1;
+  const q = `${date.slice(0, 10)} · ${String(n).padStart(4, "0")}`;
+  const target = (await notion(env, `data_sources/${source}`)).properties;
+  const properties = Object.fromEntries(Object.entries(page.properties)
+    .filter(([k, prop]) => target[k] && target[k].type === prop.type && !NO_COPY.has(k))
+    .map(([k, prop]) => [k, writable(prop)]).filter(([, w]) => w));
+  properties[ADD_ORDER] = { rich_text: [{ text: { content: q } }] };
+  const made = await notion(env, "pages", { method: "POST", body: JSON.stringify({ parent: { type: "data_source_id", data_source_id: source }, properties }) });
+  await syncLater(env, { pages: [made.id] });
+  return Response.json({ ok: true, id: made.id, c: page.properties["分类"]?.select?.name ?? null, q });
+}
+
 // 读出来的属性值换成写入用的格式
 function writable(prop) {
   const rich = (list) => list.map((t) => ({ type: "text", text: { content: t.plain_text } }));
@@ -233,68 +290,18 @@ function writable(prop) {
     case "number": return { number: prop.number };
     case "date": return { date: prop.date ? { start: prop.date.start } : null };
     case "select": return { select: prop.select ? { name: prop.select.name } : null };
+    case "checkbox": return { checkbox: prop.checkbox };
     default: return null;
   }
 }
-async function folderOptions(env, source) {
-  const schema = await notion(env, `data_sources/${source}`);
-  return schema.properties["收藏夹"]?.select?.options ?? [];
-}
-// 这个视频在某个收藏夹里的行（正常只有一行；有重复的也一并处理）
-async function folderRows(env, source, url, folder) {
-  const res = await notion(env, `data_sources/${source}/query`, {
-    method: "POST",
-    body: JSON.stringify({ filter: { and: [{ property: "视频链接", url: { equals: url } }, { property: "收藏夹", select: { equals: folder } }] } }),
-  });
-  return res.results;
-}
-// 放进：没有这一行就从收藏库复制一行新建；移出：把这一行移进回收站，30 天内可在 Notion 里恢复
-// lib 是复制来源那一行在哪个库：收藏夹只从收藏复制；星标也可以从喜欢复制
-async function setFolder(env, { platform, v, kid, lib = "K", folder, on }) {
-  const source = folderSource(platform);
-  if (!source || typeof on !== "boolean" || typeof folder !== "string" || !folder || (lib !== "K" && folder !== STARRED)) return fail(400, "bad request");
-  const page = await videoRow(env, platform, lib, kid);
-  if (!page) return fail(404, "not a video row");
-  const url = page.properties["视频链接"]?.url;
-  if (!url || videoIdOf(url) !== v) return fail(400, "bad request");
-  if (!(await folderOptions(env, source)).some((o) => o.name === folder)) return fail(409, "folders changed, sync from Notion first");
-  const rows = await folderRows(env, source, url, folder);
-  if (on) {
-    if (rows.length) return Response.json({ ok: true, id: rows[0].id });
-    const properties = Object.fromEntries(COPY.filter((k) => page.properties[k]).map((k) => [k, writable(page.properties[k])]).filter(([, w]) => w));
-    properties["收藏夹"] = { select: { name: folder } };
-    properties["添加时间"] = { date: { start: new Date().toISOString() } };
-    const made = await notion(env, "pages", { method: "POST", body: JSON.stringify({ parent: { type: "data_source_id", data_source_id: source }, properties }) });
-    await syncLater(env, { pages: [made.id] });
-    return Response.json({ ok: true, id: made.id });
-  }
-  for (const row of rows) await notion(env, `pages/${row.id}`, { method: "PATCH", body: JSON.stringify({ in_trash: true }) });
-  if (rows.length) await syncLater(env, { pages: rows.map((r) => r.id) });
-  return Response.json({ ok: true });
-}
-// 有收藏夹库的平台（抖音），星标就是放进「星标」这个收藏夹；没有的（X、小红书），勾这条在各个库里那几行的「星标」列
-async function videoStar(env, { platform, v, kid, lib, rows, on }) {
-  if (folderSource(platform)) return setFolder(env, { platform, v, kid, lib, folder: STARRED, on });
+// 星标：勾这条在各个库里那几行的「星标」列，三个平台一样
+async function videoStar(env, { rows, platform, on }) {
   if (typeof on !== "boolean" || !Array.isArray(rows) || !rows.length || rows.length > 2) return fail(400, "bad request");
   for (const r of rows) if (!(await videoRow(env, platform, r.lib, r.id))) return fail(404, "not a video row");
   for (const r of rows) await notion(env, `pages/${r.id}`, { method: "PATCH", body: JSON.stringify({ properties: { [STARRED]: { checkbox: on } } }) });
   await syncLater(env, { pages: rows.map((r) => r.id) });
   return Response.json({ ok: true });
 }
-// 新建收藏夹：「收藏夹」单选加一个选项，已有选项连同颜色原样带上。名字规则与网页一致
-async function newFolder(env, { platform, name }) {
-  const source = folderSource(platform);
-  name = typeof name === "string" ? name.trim() : "";
-  if (!source || !name || name.length > 20 || name.includes(",")) return fail(400, "bad request");
-  const options = await folderOptions(env, source);
-  if (name === STARRED || options.some((o) => o.name === name)) return fail(409, "folder exists");
-  const next = [...options.map((o) => ({ id: o.id, name: o.name, color: o.color })), { name }];
-  await notion(env, `data_sources/${source}`, { method: "PATCH", body: JSON.stringify({ properties: { "收藏夹": { select: { options: next } } } }) });
-  // 选项变了，让下一次同步重读收藏夹名单
-  await syncLater(env, { order: true });
-  return Response.json({ ok: true });
-}
-
 // ===== 微信：改文章的公众号。网页传页面 ID 列表和新名字：单篇改是一篇，整个号改名是这个号的全部文章，网页分批发 =====
 // 每批上限：每行先读一次确认属于「公众号」库、再写一次，免费版每个请求最多 50 次子请求
 const MAX_ACCOUNT_ROWS = 20;
@@ -324,7 +331,7 @@ async function wechatAccount(env, { ids, name }) {
   return Response.json({ ok: true });
 }
 
-// 改一篇的标题：写「标题」，「名称」（Notion 里的标题列）跟着改，两处保持一致
+// 改一篇的标题：写「标题」，「名称」跟着标题（卡片只留标题，不显示正文）
 async function wechatTitle(env, { id, title }) {
   const source = DATABASES.wechat?.articles;
   title = typeof title === "string" ? title.replace(/\s+/g, " ").trim() : "";
@@ -345,7 +352,7 @@ async function wechatCategory(env, { id, category: name }) {
   if (!(schema.properties["分类"]?.select?.options ?? []).some((o) => o.name === name)) return fail(409, "categories changed, sync from Notion first");
   const page = await notion(env, `pages/${id}`);
   if (page.parent?.data_source_id !== source) return fail(404, "not an article row");
-  await notion(env, `pages/${id}`, { method: "PATCH", body: JSON.stringify({ properties: { "分类": { select: { name } } } }) });
+  await notion(env, `pages/${id}`, { method: "PATCH", body: JSON.stringify({ properties: { "分类": { select: { name } }, [MANUAL]: { checkbox: true } } }) });
   await syncLater(env, { pages: [id] });
   return Response.json({ ok: true });
 }
@@ -361,7 +368,43 @@ async function wechatDelete(env, { id }) {
   return Response.json({ ok: true });
 }
 
+// ===== 豆瓣：一本书是「豆瓣读书」库的一行，一部影片是「豆瓣影视」库的一行，网页传页面 ID =====
+// 两个库的星标、短评、取消日期三列同名，共用这几个接口。
+// 写入连接能碰到整个「折角」页面，先确认这一行属于这两个库之一再写
+async function updateBook(env, id, properties) {
+  const sources = [DATABASES.douban?.books, DATABASES.douban?.movies].filter(Boolean);
+  if (!sources.length || !PAGE_ID.test(id ?? "")) return fail(400, "bad request");
+  const page = await notion(env, `pages/${id}`);
+  if (!sources.includes(page.parent?.data_source_id)) return fail(404, "not a douban row");
+  await notion(env, `pages/${id}`, { method: "PATCH", body: JSON.stringify({ properties }) });
+  await syncLater(env, { pages: [id] });
+  return Response.json({ ok: true });
+}
+async function bookStar(env, { id, on }) {
+  if (typeof on !== "boolean") return fail(400, "bad request");
+  return updateBook(env, id, { [STARRED]: { checkbox: on } });
+}
+// 标记取消：取消日期填此刻（填了就算取消，同内容页的库）；恢复：清空取消日期。近期新增按 Notion 行的创建时间排，恢复时不写别的列。
+// 时刻由网页传本地时间带时区，近期取消按它排序，只接受与服务器时间相差两天以内的；恢复不用时刻
+async function bookCancel(env, { id, on, date }) {
+  if (typeof on !== "boolean") return fail(400, "bad request");
+  if (!on) return updateBook(env, id, { "取消日期": { date: null } });
+  if (!DATE_TIME.test(date ?? "") || Math.abs(Date.parse(date) - Date.now()) > 2 * 864e5) return fail(400, "bad date");
+  return updateBook(env, id, { "取消日期": { date: { start: date } } });
+}
+
+// 短评：写、改、删都走这里，写空即删；与豆瓣短评同限 350 字，按字符数算
+async function bookNote(env, { id, text }) {
+  if (typeof text !== "string") return fail(400, "bad request");
+  text = text.replace(/\r\n/g, "\n").trim();
+  if ([...text].length > 350) return fail(400, "note too long");
+  return updateBook(env, id, { "短评": { rich_text: text ? richOf(text) : [] } });
+}
+
 const ROUTES = {
+  "/api/douban/star": bookStar,
+  "/api/douban/note": bookNote,
+  "/api/douban/cancel": bookCancel,
   "/api/wechat/account": wechatAccount,
   "/api/wechat/delete": wechatDelete,
   "/api/wechat/title": wechatTitle,
@@ -371,10 +414,10 @@ const ROUTES = {
   "/api/video/text": videoText,
   "/api/video/text/get": videoTextGet,
   "/api/video/star": videoStar,
-  "/api/video/folder": setFolder,
-  "/api/video/folder/new": newFolder,
+  "/api/video/other": videoOther,
   "/api/star": star,
   "/api/category": category,
+  "/api/subcategory": subcategory,
   "/api/unfollow": unfollow,
   "/api/order": order,
   "/api/sync": syncAll,
@@ -385,7 +428,6 @@ export async function handleWrite(request, env, pathname) {
   if (!route) return fail(404, "not found");
   if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { Allow: "POST" } });
   // 只接受本站页面发来的 JSON：跨站表单发不出 JSON，Origin 也对不上
-  // 只接受本站页面发来的写入；没配 HOST 时（本机调试）按请求本身的来源比对
   const origin = env.HOST?.trim() ? `https://${env.HOST.trim()}` : new URL(request.url).origin;
   if (request.headers.get("origin") !== origin || !(request.headers.get("content-type") ?? "").includes("application/json")) {
     return fail(403, "forbidden");

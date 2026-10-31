@@ -14,7 +14,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { DATABASES, NAMES, fullPlatforms } from "../src/platforms.mjs";
+import { SUBCATEGORIES } from "../src/subcategories.mjs";
 import { writeSummary } from "./summary.mjs";
+import { loadPages } from "./pages.mjs";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const fileOf = (slug) => join(ROOT, `public/data/${slug}/creators.json`);
@@ -69,14 +71,15 @@ async function categoriesOf(dataSourceId, name) {
 
 const text = (richText) => (richText ?? []).map((t) => t.plain_text).join("");
 
-// 短键名压体积：id 页面 ID，n 名称 c 分类 u 主页 b 简介 a 头像 f 粉丝数，
-// x 已取关（1），d 取关日期（带时区的时刻，如 2026-10-03T14:05:00.000-05:00，也可以只有日期），s 特别关注（1），j 关注日期（格式同取关日期），
+// 短键名压体积：id 页面 ID，n 名称 c 分类 sc 子分类 u 主页 b 简介 a 头像 f 粉丝数，
+// x 已取关（1），d 取关日期（带时区的时刻，如 2026-10-03T14:05:00.000-05:00；早期导入的可能只有日期），s 特别关注（1），j 关注日期（同取关日期），
 // o 关注顺序（抖音「最近关注」列表排出来的名次，1 是最早关注的，越大越新；已取关、不在名单里的没有）
 function toItem(page) {
   const p = page.properties;
   const item = { id: page.id, n: text(p["名称"]?.title) };
   const fields = {
     c: p["分类"]?.select?.name,
+    sc: p["子分类"]?.select?.name,
     u: p["主页链接"]?.url,
     b: text(p["简介"]?.rich_text),
     a: p["头像"]?.url,
@@ -128,20 +131,21 @@ async function syncPlatform(slug, db, pages) {
     .sort((x, y) => (y.f ?? 0) - (x.f ?? 0) || x.n.localeCompare(y.n) || x.id.localeCompare(y.id));
   // 数据库读空时不覆盖，防止权限或连接出问题时把现有数据清掉；按失败退出，网页上会显示同步失败
   if (!items.length) throw new Error(`「${name}」没有读到任何条目，保留现有文件`);
-  if (!full && JSON.stringify({ categories, items }) === JSON.stringify({ categories: existing.categories, items: existing.items })) {
+  // 子分类的上下级在 src/subcategories.mjs，没有子分类的平台不写这一项
+  const subcats = SUBCATEGORIES[slug];
+  if (!full && JSON.stringify({ categories, subcats, items }) === JSON.stringify({ categories: existing.categories, subcats: existing.subcats, items: existing.items })) {
     return console.log(`按页面：「${name}」没有变化，不写文件`);
   }
   // updated 是这份数据开始读 Notion 的时间：网页上「从 Notion 同步」旁边显示它，也用它判断本机记录是否已被快照覆盖
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify({ updated: readAt, categories, items }));
+  writeFileSync(out, JSON.stringify({ updated: readAt, categories, subcats, items }));
   console.log(`${full ? "全量" : "按页面"}：public/data/${slug}/creators.json 共 ${items.length} 条`);
   writeSummary(slug);
 }
 
 // 不用 process.exit：Windows 上请求刚结束就退出会触发 Node 的断言
 async function main() {
-  const pages = new Map();
-  for (const id of ids) pages.set(id, await notion(`pages/${id}`));
+  const pages = await loadPages(ids, notion);
   for (const [slug, db] of Object.entries(DATABASES)) await syncPlatform(slug, db, pages);
 }
 await main();

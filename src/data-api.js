@@ -2,7 +2,8 @@
  * 网页读数据与查同步进度的两个只读接口，由 worker.js 核验登录凭证后调用。
  *
  * GET /api/<平台>/creators：返回仓库 main 上最新的 public/data/<平台>/creators.json（博主）；
- * GET /api/<平台>/videos：同样的做法返回 public/data/<平台>/videos.json（收藏、喜欢、收藏夹；微信是公众号文章），网页切到「内容」时才读；
+ * GET /api/<平台>/videos：同样的做法返回 public/data/<平台>/videos.json（收藏、喜欢；微信是公众号文章；豆瓣是读书），网页切到「内容」时才读；
+ * GET /api/douban/movies：同样的做法返回 public/data/douban/movies.json（豆瓣影视）；
  * GET /api/<平台>/summary：同样的做法返回 public/data/<平台>/summary.json，首页用的几十 KB 摘要（数量与最近几条）。
  * 数据上线不依赖部署：数据文件要是随部署打包，构建服务一出故障，同步任务提交了的数据就上不了线。
  * 所以 Worker 直接从仓库读，同步任务一提交就生效。

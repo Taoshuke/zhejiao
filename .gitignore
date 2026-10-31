@@ -4,3 +4,13 @@ node_modules/
 .dev.vars
 # 数据文件只提交进你自己的私有仓库（同步任务用 git add -f 提交），公开的模板仓库里不放；本机预览用 scripts/demo-data.mjs 生成
 public/data/
+
+# 本机目录，不进仓库
+private/
+
+# 豆瓣详情与封面同 public/data/：模板仓库里只有演示数据生成的，不提交；你自己的私有仓库用 git add -f 提交
+public/details/
+public/covers/
+# 本机给 AI 助手看的项目说明，不进仓库
+CLAUDE.md
+AGENTS.md

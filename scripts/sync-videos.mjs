@@ -1,23 +1,21 @@
 /**
- * 把各平台的收藏、喜欢、收藏夹三个数据库同步成网页内容页读取的 public/data/<平台>/videos.json（对应见 src/platforms.mjs）。
+ * 把各平台的收藏、喜欢两个数据库同步成网页内容页读取的 public/data/<平台>/videos.json（对应见 src/platforms.mjs）。
  * 与 sync-follows.mjs 同一个工作流里依次运行，读什么也一样由环境变量决定：
- * - SYNC_PLATFORMS 里的平台三个库全表重读，每次都重写文件；SYNC_MODE=full 而没写平台时全部平台；
+ * - SYNC_PLATFORMS 里的平台两个库全表重读，每次都重写文件；SYNC_MODE=full 而没写平台时全部平台；
  * - SYNC_PAGES 里属于收藏、喜欢两个库的行按页面 ID 合并进所属平台的文件，只在确实变了时才写。
- *   其中有收藏夹库的行，或 SYNC_ORDER 为 1（网页新建了收藏夹）时，那个平台的收藏夹库整个重读，它只有几十行。
  *
  * 收藏、喜欢两个库各自独立：同一视频在两边各有一条记录，分类、取消各管各的。取消只看「取消日期」有没有填。
- * 收藏夹库：视频放进一个收藏夹，就从收藏库复制一行过去，「收藏夹」单选填那个收藏夹；标星就是放进「星标」。
- * 同一视频在几个收藏夹里就有几行。收藏夹只属于收藏。
- * 文件按视频合并成一条，两边的记录分别放在 L（喜欢）、K（收藏）下，收藏夹归属放在 F 下。短键名：
+ * 抖音不再有收藏夹库，星标和 X、小红书一样，是两个库里的「星标」勾选列。
+ * 文件按视频合并成一条，两边的记录分别放在 L（喜欢）、K（收藏）下。短键名：
  *   v 视频 ID（X 是帖子 ID，小红书是笔记 ID），u 视频链接（X 是帖子链接，小红书是笔记链接），t 文案（X 是正文，小红书是标题接正文；都只留前 300 字），a 作者，au 作者主页，n 图文（1），du 时长秒，pt 发布时间，lk 点赞数，g 话题
- *   L、K 里：id 页面 ID，c 分类，x 已取消（1），d 取消时刻，j 收藏或喜欢的时刻（「添加时间」），s 标了星（1，只有 X 与小红书）
- *   F 里：s 标了星（1），f 所在的收藏夹（不含星标）
- * 顶层 cats 是两个库各自的分类选项顺序，folders 是收藏夹库的收藏夹选项（不含星标）。
+ *   L、K 里：id 页面 ID，c 分类，x 已取消（1），d 取消时刻，j 收藏或喜欢的时刻（「添加时间」，X 与小红书），q 添加顺序（「添加顺序」，三个平台都有，如「2026-10-03 · 0001」：批次日期加编号，越晚加入编号越大），s 标了星（1）
+ * 顶层 cats 是两个库各自的分类选项顺序。
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { DATABASES, NAMES, fullPlatforms } from "../src/platforms.mjs";
 import { writeSummary } from "./summary.mjs";
+import { loadPages } from "./pages.mjs";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const fileOf = (slug) => join(ROOT, `public/data/${slug}/videos.json`);
@@ -97,68 +95,48 @@ function record(page) {
     x: p["取消日期"]?.date ? 1 : 0,
     d: p["取消日期"]?.date?.start,
     j: p[TIME]?.date?.start,
-    // X 与小红书的星标是库里的「星标」勾选列（抖音的星标在收藏夹库，见 F）
+    q: text(p["添加顺序"]?.rich_text),
     s: p[STARRED]?.checkbox ? 1 : 0,
   });
 }
 
 // 字段按固定顺序排，按页面同步时才能和现有文件逐字比对出「没有变化」
-const KEYS = ["v", "u", "t", "a", "au", "n", "du", "pt", "lk", "g", "L", "K", "F"];
+const KEYS = ["v", "u", "t", "a", "au", "n", "du", "pt", "lk", "g", "L", "K"];
 const ordered = (it) => Object.fromEntries(KEYS.filter((k) => k in it).map((k) => [k, it[k]]));
 
 // 开始读 Notion 的时刻，网页拿它判断本机记录是否已被快照覆盖
 const readAt = new Date().toISOString();
 const FULL = fullPlatforms(process.env);
-const ORDER = process.env.SYNC_ORDER === "1";
 const ids = (process.env.SYNC_PAGES ?? "").split(",").map((s) => s.trim()).filter((s) => PAGE_ID.test(s));
 
 async function syncPlatform(slug, db, pages) {
   const libs = Object.keys(LIBS).filter((lib) => db[LIBS[lib].key]);
   if (!libs.length) return;
-  const out = fileOf(slug), title = (lib) => libTitle(slug, lib), foldersName = `${NAMES[slug]}收藏夹`;
+  const out = fileOf(slug), title = (lib) => libTitle(slug, lib);
   const existing = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : null;
   const full = FULL.has(slug);
   const libOf = (page) => libs.find((lib) => page?.parent?.data_source_id === db[LIBS[lib].key]);
-  let cats = existing?.cats ?? {}, folders = existing?.folders ?? [];
+  let cats = existing?.cats ?? {};
   const byVideo = new Map(full ? [] : (existing?.items ?? []).map((it) => [it.v, it]));
 
   function put(page, lib) {
     const v = videoId(linkOf(page.properties));
     if (!v) return;
-    const { L, K, F } = byVideo.get(v) ?? {};
-    byVideo.set(v, ordered({ v, L, K, F, ...shared(page.properties), [lib]: record(page) }));
+    const { L, K } = byVideo.get(v) ?? {};
+    byVideo.set(v, ordered({ v, L, K, ...shared(page.properties), [lib]: record(page) }));
   }
   // 把某个库里这一页的记录拿掉；视频两边都没有记录了就整条去掉
+  // 改的是复制出来的一份：byVideo 里的条目和 existing.items 是同一批对象，直接删会连带改掉 existing，
+  // 后面比对时两边一样，就误判成「没有变化」不写文件（移进回收站的行在网页上一直不消失）
   function drop(pageId) {
     for (const [v, it] of byVideo) {
-      for (const lib of libs) if (it[lib]?.id === pageId) delete it[lib];
-      if (!libs.some((lib) => it[lib])) byVideo.delete(v);
-      else byVideo.set(v, ordered(it));
+      if (!libs.some((lib) => it[lib]?.id === pageId)) continue;
+      const next = { ...it };
+      for (const lib of libs) if (next[lib]?.id === pageId) delete next[lib];
+      if (!libs.some((lib) => next[lib])) byVideo.delete(v);
+      else byVideo.set(v, ordered(next));
     }
   }
-  // 收藏夹库整个重读：收藏夹名单取「收藏夹」单选的选项，每个视频的归属按行汇总，写进各条的 F
-  async function readFolders() {
-    if (!db.folders) return;
-    const schema = await notion(`data_sources/${db.folders}`);
-    if (!schema) throw new Error(`读不到「${foldersName}」数据库`);
-    folders = (schema.properties["收藏夹"]?.select?.options ?? []).map((o) => o.name).filter((n) => n !== STARRED);
-    const rows = await queryAll(db.folders, foldersName);
-    const of = new Map();
-    for (const row of rows) {
-      const v = videoId(row.properties["视频链接"]?.url), name = row.properties["收藏夹"]?.select?.name;
-      if (!v || !name) continue;
-      const F = of.get(v) ?? { s: 0, f: [] };
-      if (name === STARRED) F.s = 1; else if (!F.f.includes(name)) F.f.push(name);
-      of.set(v, F);
-    }
-    for (const [v, it] of byVideo) {
-      const F = of.has(v) ? compact(of.get(v)) : null;
-      if (F && Object.keys(F).length) it.F = F; else delete it.F;
-      byVideo.set(v, ordered(it));
-    }
-    console.log(`收藏夹：「${foldersName}」读了 ${rows.length} 行，${of.size} 个视频`);
-  }
-
   if (full) {
     cats = {};
     for (const lib of libs) {
@@ -169,41 +147,37 @@ async function syncPlatform(slug, db, pages) {
       for (const page of rows) put(page, lib);
       console.log(`全量：「${title(lib)}」读了 ${rows.length} 行`);
     }
-    await readFolders();
   } else {
     // 改的行里属于这个平台的：读得到的看它在哪个库；读不到的（已删除）看它原来在不在这个文件里
     const known = new Set([...byVideo.values()].flatMap((it) => libs.map((lib) => it[lib]?.id)).filter(Boolean));
-    let mine = 0, folderRows = ORDER && Boolean(db.folders);
+    let mine = 0;
     for (const id of ids) {
       const page = pages.get(id);
-      if (db.folders && page?.parent?.data_source_id === db.folders) { folderRows = true; continue; }
       if (page ? !libOf(page) : !known.has(id)) continue;
       mine++;
       // 删掉的、移进垃圾箱的行从文件里去掉
       if (!page || page.in_trash || page.archived) drop(id);
       else put(page, libOf(page));
     }
-    if (!mine && !folderRows) return;
+    if (!mine) return;
     if (!existing) return console.log(`「${NAMES[slug]}」的内容还没有数据文件，等手动同步一次`);
     console.log(`按页面：${NAMES[slug]}的收藏、喜欢读了 ${mine} 行`);
-    if (folderRows) await readFolders();
   }
 
   const items = [...byVideo.values()].sort((a, b) => (b.pt ?? "").localeCompare(a.pt ?? "") || a.v.localeCompare(b.v));
   if (full && !items.length) throw new Error(`「${NAMES[slug]}」的收藏、喜欢都没有读到任何条目，保留现有文件`);
-  if (!full && JSON.stringify(items) === JSON.stringify(existing.items) && JSON.stringify(folders) === JSON.stringify(existing.folders)) {
+  if (!full && JSON.stringify(items) === JSON.stringify(existing.items)) {
     return console.log(`按页面：${NAMES[slug]}的内容没有变化，不写文件`);
   }
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify({ updated: readAt, cats, folders, items }));
+  writeFileSync(out, JSON.stringify({ updated: readAt, cats, items }));
   console.log(`${full ? "全量" : "按页面"}：public/data/${slug}/videos.json 共 ${items.length} 条`);
   writeSummary(slug);
 }
 
 // 不用 process.exit：Windows 上请求刚结束就退出会触发 Node 的断言
 async function main() {
-  const pages = new Map();
-  for (const id of ids) pages.set(id, await notion(`pages/${id}`));
+  const pages = await loadPages(ids, notion);
   for (const [slug, db] of Object.entries(DATABASES)) await syncPlatform(slug, db, pages);
 }
 await main();

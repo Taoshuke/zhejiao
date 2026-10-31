@@ -11,13 +11,14 @@
 ## 2. Notion
 
 1. 按 [notion-schema.md](notion-schema.md) 建好要用的数据库。不用的平台可以不建，相应地在 `src/platforms.mjs` 里删掉那一项。
-   - 抖音的关注、喜欢、收藏，X 的关注、书签、喜欢，都可以用 `tools/` 里的脚本导出后导入，见 [tools/README.md](../tools/README.md)。小红书没有附带导出工具，按库结构整理好后导入即可。
+   - 抖音的关注、喜欢、收藏，X 的关注、书签、喜欢，都可以用 `tools/` 里的脚本导出后导入，见 [tools/README.md](../tools/README.md)。小红书与豆瓣没有附带导出工具，按库结构整理好后导入即可。豆瓣的封面与详情资料是随网页部署的静态文件，放法见 [notion-schema.md](notion-schema.md) 的豆瓣两节；没有的也能用，书封按书名生成。
 2. 在 <https://www.notion.so/profile/integrations> 建两个内部连接：
    - **只读连接**：权限只勾「读取内容」，给同步任务用。
-   - **写入连接**：勾「读取内容」「更新内容」「插入内容」，给 Worker 用（网页上的改分类、标星、收藏夹等）。
+   - **写入连接**：勾「读取内容」「更新内容」「插入内容」，给 Worker 用（网页上的改分类、标星、写短评，以及把内容加进另一个库时新建一行）。
 3. 打开放这些数据库的 Notion 页面，「…」→「连接」，把两个连接都加上（子页面与数据库会一起继承）。
-4. 逐个打开数据库，「…」→「复制数据源 ID」，填进 `src/platforms.mjs` 的 `DATABASES`。
-5. 可选：把博主数据库的链接填进 `public/app.html` 的 `DB_URL`，空状态里会出现「打开数据库」按钮。
+4. 逐个打开数据库，「…」→「复制数据源 ID」，填进 `src/platforms.mjs` 的 `DATABASES`。豆瓣是 `douban` 一项下的 `books`（豆瓣读书）与 `movies`（豆瓣影视）。
+5. 可选：要给博主分子分类，在 `src/subcategories.mjs` 里按「平台 → 分类 → 子分类列表」写上下级，再在博主库的「子分类」列里建同名选项。子分类名在一个平台内不要重名；以后加、改、删子分类，改这个文件并部署，Notion 里已填的行一起改掉。
+6. 可选：把博主数据库的链接填进 `public/app.html` 的 `DB_URL`，空状态里会出现「打开数据库」按钮。
 
 ## 3. GitHub
 
@@ -61,7 +62,7 @@ Worker 用这个 App 的安装令牌启动同步任务、读仓库里的数据�
 打开 `https://你的子域名/`，经 Access 登录后，进到每个平台的页面，点侧栏底部「从 Notion 同步」。同步任务读完 Notion、提交数据文件后，网页会自动刷新。
 
 之后：
-- 网页上的改动会自动写回 Notion，并只把改了的几行同步回网页；
+- 网页上的改动会自动写回 Notion，并只把改了的几行同步回网页；工作流只运行这次有改动的平台对应的同步脚本；
 - 在 Notion 里直接改的东西，要再点一次「从 Notion 同步」才会进网页。
 
 ## 本机调试
@@ -79,7 +80,7 @@ python -m http.server 8080 -d public
 2. `public/app.html`：`PLATFORM_LIST` 与 `ENABLED` 跟着改；
 3. `public/index.html`：`PLATS` 里给它配色，首页卡片上的几个数字在 `platCard` 里按平台写；
 4. 结构和抖音一样（博主、收藏、喜欢）的平台可以直接复用现有的页面与同步脚本，X 与小红书就是这样接进来的，页面上的叫法差异见 `app.html` 里的 `isX` 与 `isRed`；
-5. 数据结构与现有平台不同时（比如微信），参照 `scripts/sync-wechat.mjs` 写一个同步脚本，并在工作流里加一步。
+5. 数据结构与现有平台不同时（比如微信、豆瓣），参照 `scripts/sync-wechat.mjs` 或 `scripts/sync-douban.mjs` 写一个同步脚本，并在工作流里加一步。按页面同步时改过的行由工作流统一读一次，新脚本照这两个脚本的写法取用即可。
 
 用不到某个平台时，把它从 `DATABASES` 和 `ENABLED` 里删掉，首页 `PLATS` 里它的配色改成 `null`，卡片就会显示为未接入。
 
@@ -87,4 +88,5 @@ python -m http.server 8080 -d public
 
 - 网页侧栏标红「备用数据」：Worker 暂时读不到仓库，显示的是缓存或部署时打包的那份。检查 GitHub App 是否还装在仓库上、私钥是否正确。
 - 同步失败：网页会提示出错的步骤名，到仓库的 Actions 页面看那次运行的日志。最常见的是只读连接没被加到数据库所在的页面上。
+- 网页上改分类报错：多半是那个库缺「人工」列，或者分类、子分类的选项在 Notion 里已改名或删除，先补列或点一次「从 Notion 同步」。
 - Workers Logs 已在 `wrangler.jsonc` 里打开，可以在 Cloudflare 后台回查请求。

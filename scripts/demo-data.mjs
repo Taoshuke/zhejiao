@@ -1,12 +1,14 @@
 /**
  * 生成虚构的演示数据，写进 public/data/（不提交，见 .gitignore），不配 Notion 也能在本机打开网页看效果：
  *   node scripts/demo-data.mjs
+ * 豆瓣几本书和影片的详情资料另写进 public/details/douban/ 与 public/details/douban-movie/（同样是虚构的）。
  *   npx wrangler dev 或任意静态服务器打开 public/（平台页是 app.html）
  * 名字、文案、链接全是编的，和真实账号无关。同样的种子每次生成同样的数据。
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { writeSummary } from "./summary.mjs";
+import { SUBCATEGORIES } from "../src/subcategories.mjs";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 let seed = 20261005;
@@ -24,11 +26,16 @@ const avatar = (name) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 55% 62%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360} 50% 42%)"/></linearGradient></defs><rect width="96" height="96" fill="url(#g)"/><text x="48" y="50" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="42" font-weight="600" fill="#fff" text-anchor="middle" dominant-baseline="central">${ch}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
-const write = (file, data) => {
-  const path = join(ROOT, "public/data", file);
+const write = (file, data, dir = "public/data") => {
+  const path = join(ROOT, dir, file);
   mkdirSync(join(path, ".."), { recursive: true });
   writeFileSync(path, JSON.stringify(data));
-  console.log(`演示数据：public/data/${file}`);
+  console.log(`演示数据：${dir}/${file}`);
+};
+// 添加顺序（「添加顺序」列）：批次日期加四位编号，越晚加入编号越大。按加入时刻从早到晚编，分三批
+const addOrder = (rows) => {
+  const batches = [daysAgo(300), daysAgo(120), daysAgo(20)].map(day).sort();
+  rows.forEach((r, i) => (r.q = `${batches[Math.min(2, Math.floor((i * 3) / rows.length))]} · ${String(i + 1).padStart(4, "0")}`));
 };
 
 // ---------- 抖音博主 ----------
@@ -43,11 +50,14 @@ const creators = Array.from({ length: 160 }, (_, i) => {
   const item = { id: uuid(1000 + i), n, c: pick(FOLLOW_CATS), u: "https://www.douyin.com/", b: pick(BIO), a: avatar(n), f: fans, j: followed, o: 0 };
   if (rand() < 0.08) item.s = 1;
   if (rand() < 0.04) { item.x = 1; item.d = daysAgo(int(1, 25)); }
+  // 子分类：分类在 src/subcategories.mjs 里有子分类的，大多数账号填一个
+  const subs = SUBCATEGORIES.douyin?.[item.c] ?? [];
+  if (subs.length && rand() < 0.85) item.sc = pick(subs);
   return item;
 });
 creators.sort((a, b) => a.j.localeCompare(b.j)).forEach((c, i) => (c.o = i + 1));
 creators.sort((a, b) => b.f - a.f);
-write("douyin/creators.json", { updated: new Date(now).toISOString(), categories: FOLLOW_CATS, items: creators });
+write("douyin/creators.json", { updated: new Date(now).toISOString(), categories: FOLLOW_CATS, subcats: SUBCATEGORIES.douyin ?? {}, items: creators });
 
 // ---------- 抖音收藏与喜欢 ----------
 const VIDEO_CATS = ["人工智能", "编程开发", "数码硬件", "心理成长", "历史人文", "财经投资", "科学科普", "读书文学", "美食烹饪", "旅行风光", "健身康复", "影视娱乐"];
@@ -65,7 +75,6 @@ const TOPIC = {
   健身康复: ["久坐族的肩颈放松", "每天十五分钟在家练核心", "跑步膝盖疼怎么办"],
   影视娱乐: ["这部老电影现在看依然惊艳", "配乐让一场戏封神", "三分钟讲完一部纪录片"],
 };
-const FOLDERS = ["稍后再看", "学做菜"];
 const videos = Array.from({ length: 180 }, (_, i) => {
   const c = pick(VIDEO_CATS), inK = rand() < 0.6, inL = !inK || rand() < 0.3;
   const it = {
@@ -79,13 +88,13 @@ const videos = Array.from({ length: 180 }, (_, i) => {
   };
   if (inL) it.L = { id: uuid(5000 + i), c, ...(rand() < 0.2 && { j: daysAgo(int(0, 40)) }) };
   if (inK) it.K = { id: uuid(6000 + i), c, ...(rand() < 0.2 && { j: daysAgo(int(0, 40)) }) };
-  if (inK && rand() < 0.15) it.F = { s: rand() < 0.5 ? 1 : 0, f: rand() < 0.5 ? [pick(FOLDERS)] : [] };
-  // 只在喜欢里的视频也能标星（星标同样记在收藏夹库）
-  if (!inK && rand() < 0.08) it.F = { s: 1, f: [] };
-  if (it.F && !it.F.s && !it.F.f.length) delete it.F;
+  // 星标是收藏、喜欢两个库里的「星标」列，同一条两个库一起勾
+  if (rand() < 0.1) for (const k of ["K", "L"]) if (it[k]) it[k].s = 1;
   return it;
 }).sort((a, b) => b.pt.localeCompare(a.pt));
-write("douyin/videos.json", { updated: new Date(now).toISOString(), cats: { K: VIDEO_CATS, L: VIDEO_CATS }, folders: FOLDERS, items: videos });
+// 两个库各自按加入先后编添加顺序：大致是发布越早加入越早
+for (const k of ["K", "L"]) addOrder(videos.filter((it) => it[k]).reverse().map((it) => it[k]));
+write("douyin/videos.json", { updated: new Date(now).toISOString(), cats: { K: VIDEO_CATS, L: VIDEO_CATS }, items: videos });
 
 // ---------- 微信公众号文章 ----------
 const ACCOUNTS = ["慢读书房", "城市观察家", "格物笔记", "史海拾贝", "数字生活周刊", "经济学随笔", "山野手记", "思想市场", "科学松鼠会客厅", "电影手册"];
@@ -169,7 +178,8 @@ const posts = Array.from({ length: 140 }, (_, i) => {
   if (rand() < 0.1) for (const k of ["K", "L"]) if (it[k]) it[k].s = 1;
   return it;
 }).sort((a, b) => b.pt.localeCompare(a.pt));
-write("x/videos.json", { updated: new Date(now).toISOString(), cats: { K: POST_CATS, L: POST_CATS }, folders: [], items: posts });
+for (const k of ["K", "L"]) addOrder(posts.filter((it) => it[k]).reverse().map((it) => it[k]));
+write("x/videos.json", { updated: new Date(now).toISOString(), cats: { K: POST_CATS, L: POST_CATS }, items: posts });
 
 // ---------- 小红书博主、收藏与点赞 ----------
 // 博主分类沿用抖音博主那套；笔记分类沿用内容分类。卡片上的文字是标题接正文
@@ -214,9 +224,86 @@ ${body}`,
   if (rand() < 0.15) for (const k of ["K", "L"]) if (it[k]) it[k].s = 1;
   return it;
 }).sort((a, b) => b.pt.localeCompare(a.pt));
-write("rednote/videos.json", { updated: new Date(now).toISOString(), cats: { K: NOTE_CATS, L: NOTE_CATS }, folders: [], items: notes });
+for (const k of ["K", "L"]) addOrder(notes.filter((it) => it[k]).reverse().map((it) => it[k]));
+write("rednote/videos.json", { updated: new Date(now).toISOString(), cats: { K: NOTE_CATS, L: NOTE_CATS }, items: notes });
+
+// ---------- 豆瓣书架（读书）与影视 ----------
+// 书名、作者、译者、出版社、片名、导演、演员、目录、简介全是编的；豆瓣编号是虚构的 9 开头八位数，链接打开不是这些书
+const BOOK_CATS = ["外国文学", "中国文学", "历史", "哲学", "心理学", "经济学", "科普", "艺术"];
+const BOOK_TOPICS = ["城市与空间", "记忆与时间", "海洋", "手艺", "家族往事", "自我认知"];
+const PRESSES = ["青石出版社", "远帆文艺出版社", "白鹭书局", "北辰人文出版社", "南窗出版社", "知言书社"];
+const GIVEN = ["若川", "明远", "知秋", "砚舟", "晚晴", "一苇", "松年", "听澜", "南星", "叙白"];
+const FAMILY = ["林", "沈", "顾", "陆", "许", "苏", "程", "叶", "温", "江"];
+const FOREIGN = ["[虚构国] 艾琳·莫兰", "[虚构国] 托马斯·韦恩", "[虚构国] 卡米尔·杜邦", "[虚构国] 汉斯·贝格", "[虚构国] 伊莎·诺娃"];
+const BOOK_TITLES = ["雾中的灯塔", "第七条河流", "纸上的城市", "慢船去南方", "晚钟与麦田", "一座岛的编年", "听见石头说话", "镜子里的旅人", "冬天的植物学",
+  "旧地图上的名字", "风从北方来", "一个人的天文台", "无人知晓的海岸", "手工的哲学", "时间的抽屉", "家族相册", "思考的速度", "雨季备忘录",
+  "灰色城市指南", "小数点后的世界", "穿过森林的铁路", "安静的力量", "船长的笔记本", "最后一个钟表匠", "水的形状", "影子博物馆", "蓝色的边界",
+  "远方来信", "一百个清晨", "被遗忘的发明", "日常的勇气", "沙丘上的房子", "看不见的市场", "夜航", "云的分类学", "石头与星辰"];
+const book = (n, i) => {
+  const foreign = rand() < 0.45;
+  const g = [pick(BOOK_CATS)];
+  if (rand() < 0.4) g.push(pick(BOOK_CATS.filter((c) => c !== g[0])));
+  if (foreign && g[0] !== "外国文学" && rand() < 0.3) g.push("外国文学");
+  const it = {
+    id: uuid(24000 + i), n, v: String(90000001 + i * 37), u: `https://book.douban.com/subject/${90000001 + i * 37}/`,
+    a: [foreign ? pick(FOREIGN) : pick(FAMILY) + pick(GIVEN)], p: pick(PRESSES), y: String(int(1998, 2025)), g,
+  };
+  if (foreign) it.r = [pick(FAMILY) + pick(GIVEN)];
+  if (rand() < 0.4) it.z = [pick(BOOK_TOPICS)];
+  if (rand() < 0.15) it.st = 1;
+  if (rand() < 0.2) it.s = pick(["读到一半，节奏很慢但耐看。", "第三章最好。", "适合睡前读，每天一节。", "比想象中轻松，推荐给朋友了。"]);
+  if (rand() < 0.08) { it.x = 1; it.d = daysAgo(int(1, 30)); }
+  return it;
+};
+// 文件里按加入先后从新到旧排，网页「近期新增」取前面的
+const books = BOOK_TITLES.map(book);
+write("douban/videos.json", { updated: new Date(now).toISOString(), cats: { g: BOOK_CATS, z: BOOK_TOPICS }, items: books });
+
+// 几本书带详情资料（public/details/douban/<编号>.json）：副标题、丛书、页数、评分、目录与简介。
+// 第三本演示几册合成一个条目：volumes 列出各册，ratings 按册列评分
+const bookDetail = (it, k) => {
+  const dist = [int(30, 50), int(25, 35), int(10, 20), int(2, 8), int(0, 3)];
+  const sum = dist.reduce((x, y) => x + y, 0);
+  const det = {
+    sub: pick(["一部虚构的随笔集", "写给普通读者的小书", "故事与札记"]), series: pick(["远帆文丛", "白鹭小书", "青石译丛"]),
+    date: `${it.y}-${int(1, 12)}`, pages: String(int(160, 520)), binding: pick(["平装", "精装"]), price: `${int(39, 98)}.00元`,
+    rating: Math.round((7 + rand() * 2.4) * 10) / 10, votes: int(120, 9800), dist: dist.map((x) => Math.round((x / sum) * 1000) / 10),
+    intro: `《${it.n}》是一本虚构的演示用书，用来展示详情页的版式。\n全书由若干短章组成，每章围绕一个日常物件展开，从物件说到人，再从人说到他们所在的地方。\n作者用平实的语言记下观察，不急于下结论，留给读者自己去想。`,
+    toc: ["序", "第一章 出发之前", "第一节 一张旧车票", "第二节 行李清单", "第二章 路上", "第一节 窗外", "第二节 同行的人", "第三章 抵达", "后记"],
+  };
+  if (k === 2) {
+    det.volumes = [{ label: "上册", v: it.v }, { label: "下册", v: String(Number(it.v) + 1) }];
+    det.ratings = [{ label: "上册", rating: 8.6, votes: 2310, dist: det.dist }, { label: "下册", rating: 8.2, votes: 1540, dist: det.dist }];
+    delete det.rating; delete det.votes; delete det.dist;
+  }
+  return det;
+};
+books.slice(0, 5).forEach((it, k) => write(`douban/${it.v}.json`, bookDetail(it, k), "public/details"));
+
+const MOVIE_CATS = ["剧情", "喜剧", "纪录片", "动画", "科幻", "悬疑"];
+const MOVIE_TOPICS = ["公路电影", "成长", "小城故事"];
+const REGIONS = ["虚构国", "北海共和国", "南岭"];
+const MOVIE_TITLES = ["夏天结束的地方", "灯塔看守人", "第九站台", "海边的理发店", "长夜慢车", "一封没寄出的信", "纸飞机", "雾港", "回声小镇", "星期三的雨", "最后的放映员", "远山来客"];
+const movies = MOVIE_TITLES.map((n, i) => {
+  const it = {
+    id: uuid(26000 + i), n, v: String(91000001 + i * 41), u: `https://movie.douban.com/subject/${91000001 + i * 41}/`,
+    dr: [pick(FAMILY) + pick(GIVEN)], ac: [pick(FAMILY) + pick(GIVEN), pick(FAMILY) + pick(GIVEN)], y: String(int(1985, 2025)), rg: pick(REGIONS), g: [pick(MOVIE_CATS)],
+  };
+  if (rand() < 0.3) it.z = [pick(MOVIE_TOPICS)];
+  if (rand() < 0.2) it.st = 1;
+  if (rand() < 0.2) it.s = pick(["结尾那场戏很安静。", "配乐好听。", "适合一个人看。"]);
+  if (rand() < 0.08) { it.x = 1; it.d = daysAgo(int(1, 30)); }
+  return it;
+});
+write("douban/movies.json", { updated: new Date(now).toISOString(), cats: { g: MOVIE_CATS, z: MOVIE_TOPICS }, items: movies });
+movies.slice(0, 2).forEach((it) => write(`douban-movie/${it.v}.json`, {
+  orig: "Demo Film", genre: it.g, region: it.rg, lang: "汉语", date: `${it.y}-0${int(1, 9)}-1${int(0, 9)}`, dur: `${int(88, 140)}分钟`,
+  rating: Math.round((7 + rand() * 2) * 10) / 10, votes: int(300, 12000), dist: [38.2, 34.5, 20.1, 5.6, 1.6],
+  intro: `《${it.n}》是一部虚构的演示影片，用来展示影片详情页的版式。\n故事发生在一座海边小城，几个陌生人在一个夏天里相遇又分开。`,
+}, "public/details"));
 
 writeSummary("douyin");
 writeSummary("wechat");
 writeSummary("x");
 writeSummary("rednote");
+writeSummary("douban");

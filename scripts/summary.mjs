@@ -1,8 +1,8 @@
 /**
  * 首页用的摘要 public/data/<平台>/summary.json：各平台的数量和最近几条，几 KB，首页只读它，不读几 MB 的数据文件。
- * 由三个同步脚本在写完数据文件后调用，按这个平台现有的数据文件重算；也可以直接运行 node scripts/summary.mjs [平台…]，不写平台就是全部。
+ * 由各同步脚本在写完数据文件后调用，按这个平台现有的数据文件重算；也可以直接运行 node scripts/summary.mjs [平台…]，不写平台就是全部。
  * 抖音、X（k 是书签）与小红书：f 关注中的博主数，k、l 收藏、喜欢里没取消的条数，recent 最近关注的博主与最近收藏的视频；
- * 微信：k 文章数，a 公众号数，recent 最近收藏的文章。recent 里每条：type（follow、collect、article），t 标题或名字，a 作者、公众号或头像，j 时间，u 链接，p 网页里的去处。
+ * 微信：k 文章数，a 公众号数，recent 最近收藏的文章；豆瓣：k 没取消的图书本数，没有 recent（首页不列书）。recent 里每条：type（follow、collect、article），t 标题或名字，a 作者、公众号或头像，j 时间，u 链接，p 网页里的去处。
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -24,7 +24,7 @@ function creatorsAndVideos(slug) {
   const follows = [...live].sort((a, b) => time(b.j) - time(a.j) || (b.o ?? 0) - (a.o ?? 0)).slice(0, 6)
     .map((c) => ({ type: "follow", t: c.n, a: c.a, j: c.j, u: c.u, p: `/${slug}` }));
   const items = videos?.items ?? [];
-  // 收藏的「添加时间」导入时可能是空的（抖音导出里没有收藏的时刻），没有时间的不算「最近」
+  // 只有带加入时刻（j，「添加时间」）的收藏算「最近」；抖音的收藏没有这一列，加入先后记在「添加顺序」，不进首页的「最近」
   const collects = items.filter((v) => v.K && !v.K.x && v.K.j).sort((a, b) => time(b.K.j) - time(a.K.j)).slice(0, 6)
     .map((v) => ({ type: "collect", t: caption(v.t).slice(0, 80), a: v.a, j: v.K.j, u: v.u, p: `/${slug}/collect` }));
   return {
@@ -48,7 +48,14 @@ function wechat() {
   };
 }
 
-const BUILDERS = { douyin: () => creatorsAndVideos("douyin"), wechat, x: () => creatorsAndVideos("x"), rednote: () => creatorsAndVideos("rednote") };
+function douban() {
+  const data = read("douban", "videos");
+  if (!data) return null;
+  // 取消了的书留在文件里给「近期取消」用，不算进本数，同网页的「全部图书」
+  return { updated: data.updated ?? null, k: (data.items ?? []).filter((d) => !d.x).length };
+}
+
+const BUILDERS = { douyin: () => creatorsAndVideos("douyin"), wechat, x: () => creatorsAndVideos("x"), rednote: () => creatorsAndVideos("rednote"), douban };
 
 export function writeSummary(slug) {
   const summary = BUILDERS[slug]?.();

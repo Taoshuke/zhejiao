@@ -2,7 +2,7 @@
 
 把值得留下的，折个角。
 
-折角是一个自己部署的「关注与收藏」整理页。抖音上关注的博主、收藏和喜欢的视频，小红书上关注的博主、收藏和点赞的笔记，X 上关注的账号、书签和喜欢的帖子，微信里收藏的公众号文章，都放进你自己的 Notion，再在一个干净的网页上按平台、分类、日期浏览，随手改分类、标星、标记取关、改文字，改动写回 Notion。数据库也可以换成你习惯的其他产品，见[换用别的数据库](#换用别的数据库)。
+折角是一个自己部署的「关注与收藏」整理页。抖音上关注的博主、收藏和喜欢的视频，小红书上关注的博主、收藏和点赞的笔记，X 上关注的账号、书签和喜欢的帖子，微信里收藏的公众号文章，豆瓣上标记的书和影视，都放进你自己的 Notion，再在一个干净的网页上按平台、分类、日期浏览，随手改分类、标星、标记取关、改文字、写短评，改动写回 Notion。数据库也可以换成你习惯的其他产品，见[换用别的数据库](#换用别的数据库)。
 
 [English](README.en.md) · [更新记录](CHANGELOG.md)
 
@@ -13,19 +13,27 @@
 | ![抖音博主](docs/images/douyin-creators.jpg) | ![小红书博主](docs/images/rednote-creators.jpg) | ![微信公众号文章](docs/images/wechat.jpg) | ![X 博主](docs/images/x-creators.jpg) |
 | ![抖音收藏](docs/images/douyin-collect.jpg) | ![小红书收藏](docs/images/rednote-collect.jpg) | ![日历](docs/images/calendar.jpg) | ![X 书签](docs/images/x-bookmarks.jpg) |
 
+| 豆瓣书架 | 豆瓣详情页 | 博主子分类 |
+|---|---|---|
+| ![豆瓣书架](docs/images/douban-books.jpg) | ![豆瓣详情页](docs/images/douban-detail.jpg) | ![博主子分类](docs/images/subcategories.jpg) |
+
 截图里的数据都是 `scripts/demo-data.mjs` 生成的虚构内容。
 
 ## 能做什么
 
 - **首页**：各平台的数量、最近关注的博主、最近收藏的文章。
 - **抖音博主**：按分类浏览，按粉丝数分档、按关注先后或名称排序；特别关注、近期关注、近期取关；拖动调整分类顺序。
-- **抖音收藏与喜欢**：两个库各自独立，按分类与发布时间浏览；收藏夹与星标；标记取消与恢复；改标题和文案。
+- **博主子分类**：分类下面再分一级，选中分类后列表上方出一排子分类标签，按人数从多到少，没人的灰掉占位；卡片菜单里改分类和子分类。
+- **抖音收藏与喜欢**：两个库各自独立，按分类、加入先后与发布时间浏览；星标；标记取消与恢复；卡片上一键把这条加进另一个库或取消；改标题和文案。
 - **小红书博主、收藏与点赞**：和抖音同一套页面，内容是笔记，喜欢叫点赞；卡片上能改标题和正文。
 - **X 博主、书签与喜欢**：和抖音同一套页面，账号可以用单独的一套分类；卡片上能改文字。
 - **星标**：三个平台的收藏、喜欢都能标星，侧栏「星标」一格集中查看。
+- **近期新增与近期取消**：各显示当前库里最新的 99 条。
+- **豆瓣读书与影视**：书架按出版社、分类（含语种）、专题分组，影视按导演、分类、专题分组；没有封面的书自动生成书封；详情页有作译者、评分、内容简介、按卷章节分层的目录与出版信息，点封面放大；短评就地写、改、删；星标与标记取消。
 - **日历**：每个页面上的「日历」按钮按月份柱子和当月日历浏览，点某一天只看这一天。
 - **微信公众号文章**：「公众号」视图侧栏按公众号分组，「内容」视图按文章分类；按收藏时间排列；网页上改标题、改公众号名（单篇或整个号）、删除。
 - **两个方向的同步**：网页上的改动自动写回 Notion；Notion 里的改动在网页侧栏点「从 Notion 同步」后进网页，只同步当前平台。
+- **人工改过的不被脚本覆盖**：网页上改分类、子分类时自动勾上「人工」，本机批量脚本遇到这类行跳过。
 - **只有你能看**：整站放在 Cloudflare Access 后面，Worker 再核验一次登录凭证。
 
 ## 怎么运作
@@ -42,7 +50,7 @@ flowchart LR
 
 - Notion 是唯一的数据源。同步任务（`.github/workflows/sync-follows.yml`）读 Notion，把每个平台写成 `public/data/<平台>/` 下的几个 JSON 文件并提交。
 - Worker 带着 ETag 从仓库读这些文件返回给网页，数据提交即生效，不需要重新部署；GitHub 读不到时依次退回缓存与部署时打包的那份。
-- 网页上的改动由 Worker 写进 Notion，再合并成一次「按页面同步」，只把改了的几行带回数据文件。
+- 网页上的改动由 Worker 写进 Notion，再合并成一次「按页面同步」，只把改了的几行带回数据文件；改过的行只读一次，工作流只运行有活要干的同步脚本。
 - 只读的 Notion 连接给同步任务用，有写入权限的连接只给 Worker 用；GitHub 侧用一个只装在你仓库上的 GitHub App。
 
 ## 换用别的数据库
@@ -56,7 +64,7 @@ flowchart LR
 | `scripts/sync-*.mjs` | 从数据库读出数据，生成 JSON 文件 | 改成读你的数据库，输出格式不变；字段的短键名见各脚本开头的注释 |
 | `src/write-api.js` | 把网页上的改动写回数据库 | 改成写你的数据库 |
 | `src/platforms.mjs` | 记录每个平台对应哪些库 | 换成你的库的标识 |
-| `tools/resync.py` | 重新导出名单后比对并写回 | 用到这个工具才需要改 |
+| `tools/resync.py`、`tools/notion_write.py` | 重新导出名单后比对并写回 | 用到这个工具才需要改 |
 
 建库时可以参照 [docs/notion-schema.md](docs/notion-schema.md) 里的字段，按相同的含义建。界面上「从 Notion 同步」等几处文字，也可以顺手换成你用的产品名。
 
@@ -90,7 +98,7 @@ git fetch upstream
 git merge upstream/main --allow-unrelated-histories   # 只有第一次需要这个参数
 ```
 
-可能冲突的只有你填过配置的 `wrangler.jsonc` 与 `src/platforms.mjs`，保留自己那份即可。
+可能冲突的只有你填过配置的 `wrangler.jsonc`、`src/platforms.mjs` 与 `src/subcategories.mjs`，保留自己那份即可。每个版本要在 Notion 里加的列见[更新记录](CHANGELOG.md)的「升级须知」。
 
 ## 目录
 
@@ -103,7 +111,10 @@ git merge upstream/main --allow-unrelated-histories   # 只有第一次需要这
 | `src/write-api.js` | 网页上的写入，写进 Notion |
 | `src/github-app.js` | GitHub App 安装令牌 |
 | `src/platforms.mjs` | 平台与 Notion 数据库的对应 |
-| `scripts/sync-*.mjs` | 同步任务：Notion 到数据文件 |
+| `src/subcategories.mjs` | 博主子分类的上下级 |
+| `scripts/sync-*.mjs` | 同步任务：Notion 到数据文件，豆瓣是 `sync-douban.mjs` |
+| `public/covers/douban/`、`public/covers/douban-movie/` | 豆瓣封面与海报，文件名是豆瓣条目编号；没有的按书名、片名生成 |
+| `public/details/douban/`、`public/details/douban-movie/` | 详情页用的资料，一个条目一个 JSON 文件；没有的只显示书架上已有的几项 |
 | `scripts/summary.mjs` | 首页用的摘要 |
 | `scripts/demo-data.mjs` | 生成演示数据 |
 | `tools/` | 导出抖音与 X 的关注、喜欢、收藏与写回 Notion 的辅助工具，先读 [tools/README.md](tools/README.md) |

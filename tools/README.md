@@ -19,7 +19,8 @@
 | `classify-prompt.md` | 给博主分类的提示词，交给大模型批量分类 |
 | `video-classify-prompt.md` | 给视频分类的提示词 |
 | `video-csv.py` | 把导出的视频加分类结果写成 CSV，用 Notion 的「导入 CSV」建「抖音收藏」「抖音喜欢」库 |
-| `resync.py` | 目前只支持抖音。重新导出关注列表后，比对 Notion「抖音博主」库：新关注、取关、取关后又关注、资料变化，先生成计划、你确认后再写入 |
+| `resync.py` | 目前只支持抖音。重新导出关注列表后，比对 Notion「抖音博主」库：新关注、取关、取关后又关注、资料变化。只有两个命令：`plan` 只读、生成计划，`apply` 先核对、通过后才写入 |
+| `notion_write.py` | 本机写 Notion 的共用入口，`resync.py` 和你自己写的批量脚本都从这里发请求。并发 6 个，遇到 429 与 502、503、504 按返回的等待时间或递增间隔重试。批量改分类、子分类这类由你定的列时用它的 `update_rows`：写每一行前先读一遍，勾了「人工」或最后由真人改过的行跳过不写，最后列出跳过与失败的行 |
 
 ## 典型流程
 
@@ -41,14 +42,21 @@
 export NOTION_WRITE_TOKEN=ntn_...          # 有写入权限的连接
 export NOTION_CREATORS_DS=<抖音博主的数据源 ID>
 python tools/resync.py plan douyin-following.json plan/
-# 按提示逐个核对取关候选，生成 plan/unfollow-check.json
-python tools/resync.py confirm plan/
-# 给新关注的账号填好 plan/new.tsv 里的分类
-python tools/resync.py classify plan/
-python tools/resync.py apply plan/
 ```
 
-写完 Notion 后，到网页上点「从 Notion 同步」。
+1. **出计划。** `plan` 只读不写，读 Notion 全表，按主页链接末尾的 sec_uid 和新名单对应，在 `plan/` 里生成 `plan.json`（这次要改什么）、`new.tsv`（新关注）、`unfollow-candidates.json`（取关候选），并打印各类数量。新关注有三种：Notion 里没有的（新建一行）、Notion 标了取关但名单里还在的、在抖音上取关后又关注被挪到名单顶部的。
+2. **确认取关。** 在已登录的抖音页面上逐个查 `unfollow-candidates.json` 里账号的关注状态，存成同目录的 `unfollow-check.json`（sec_uid 对应关注状态，查不到写 null）。只有确认已不在关注的才会被标取关；仍在关注的说明名单漏了，查不到的（注销、封禁）单列出来由你决定。
+3. **给新关注分类。** 在 `new.tsv` 里给每个新建的账号填「分类」和「子分类」，两项都必须填，看不准就按最可能的填，以后在网页上改。子分类要属于所填的分类，上下级以 `src/subcategories.mjs` 为准。另外两种新关注沿用原来的分类、子分类和特别关注，不用填。
+4. **写入。**
+
+   ```bash
+   python tools/resync.py apply plan/
+   ```
+
+   `apply` 先核对：有取关候选却没有 `unfollow-check.json`、新关注缺分类或子分类、分类或子分类对不上，任何一项不通过就停下，一行不写。通过后写 Notion：新关注建行或在原行上改，写新的关注日期与关注顺序；确认取关的勾「已取关」并填取关日期；两边都有的账号，昵称、头像、简介有变化就更新，粉丝数变化超过 1% 才更新。分类、子分类、特别关注不动。个别请求失败时记下接着跑，最后列出来，重跑只补这些。
+5. **同步与复核。** 写完 Notion 后，到网页上点「从 Notion 同步」。再跑一次 `plan`，应该没有要改的。
+
+昵称、头像、简介、粉丝数、关注状态是抖音上的事实，`resync.py` 照抖音写，不看「人工」；「人工」只保护分类、子分类这类由你定的列。
 
 ## 节奏与限频
 

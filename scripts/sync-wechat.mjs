@@ -1,18 +1,19 @@
 /**
  * 把微信的「公众号」库（收藏里带链接的公众号文章，见 src/platforms.mjs 的 DATABASES.wechat.articles）同步成 public/data/wechat/videos.json。
- * 与 sync-follows.mjs、sync-videos.mjs 同一个工作流里依次运行，读什么由环境变量决定：
+ * 与 sync-follows.mjs、sync-videos.mjs、sync-douban.mjs 同一个工作流里依次运行，读什么由环境变量决定：
  * - SYNC_PLATFORMS 里有 wechat（或 SYNC_MODE=full 而没写平台）时全表重读，每次都重写文件；
  * - SYNC_PAGES 里属于这个库的行（网页上改了公众号的文章）按页面 ID 合并进现有文件，只在确实变了时才写，
  *   不读别的行，Notion 里还没手动同步的改动不会被顺带带进网页。
- * 文件名沿用 videos.json：Workers Builds 的监视路径已排除它，Worker 也只认 creators、videos 两种文件，同步提交不触发部署。
- * 短键名：id 页面 ID，n 标题（「标题」列，空的时候用「名称」），a 公众号，u 原文链接，j 收藏日期，o 顺序（收藏列表里的先后，1 是最早的），q 公众号待核（1）。
- * c 分类（按内容分的分类，网页上的「内容」视图用）；顶层 cats 是「分类」单选的选项顺序，全表重读时更新。
+ * 文件名沿用 videos.json：Workers Builds 的监视路径已排除它，Worker 也只认 creators、videos、summary 几种文件，同步提交不触发部署。
+ * 短键名：id 页面 ID，n 标题（「标题」列；不读正文），a 公众号，u 原文链接，j 收藏日期，o 顺序（收藏列表里的先后，1 是最早的），q 公众号待核（1）。
+ * c 分类（按内容分类，网页上的「内容」视图用）；顶层 cats 是「分类」单选的选项顺序，全表重读时更新。
  * 条目按收藏日期从新到旧、同一天按顺序从新到旧排，和微信收藏列表一致。
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { DATABASES, fullPlatforms } from "../src/platforms.mjs";
 import { writeSummary } from "./summary.mjs";
+import { loadPages } from "./pages.mjs";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const OUT = join(ROOT, "public/data/wechat/videos.json");
@@ -66,9 +67,10 @@ async function syncPages(source, readAt) {
   if (!ids.length || !existsSync(OUT)) return;
   const existing = JSON.parse(readFileSync(OUT, "utf8"));
   const byId = new Map(existing.items.map((it) => [it.id, it]));
+  const pages = await loadPages(ids, notion);
   let mine = 0;
   for (const id of ids) {
-    const page = await notion(`pages/${id}`);
+    const page = pages.get(id);
     if (page ? page.parent?.data_source_id !== source : !byId.has(id)) continue;
     mine++;
     if (!page || page.in_trash || page.archived) byId.delete(id);

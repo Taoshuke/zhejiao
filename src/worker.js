@@ -5,7 +5,9 @@
  * 进到这里的有这几类：
  * - 不是 HOST 的请求：路径以 REDIRECT_PREFIXES 里的某段开头的（比如搬家前的旧地址），整条路径（连问号后）308 跳到 HOST，其余 404；
  * - 首页 / 是静态的 index.html；按平台分的网址 /<平台>、/<平台>/creator、/collect、/like 没有对应的静态文件，在这里返回 app.html；
- * - /api/*：GET <平台>/creators、<平台>/videos、<平台>/summary（首页用的摘要）、sync-status 交给 data-api.js，网页从仓库读最新数据、查同步进度；
+ * - 豆瓣一本书的详情页 /douban/book/<豆瓣编号>、影视页 /douban/movie 与一部影片的详情页 /douban/movie/<豆瓣编号> 同样返回 app.html；
+ *   详情里的豆瓣资料是静态文件 /details/douban/<编号>.json（书）与 /details/douban-movie/<编号>.json（影片），随网页部署；
+ * - /api/*：GET <平台>/creators、<平台>/videos、douban/movies、<平台>/summary（首页用的摘要）、sync-status 交给 data-api.js，网页从仓库读最新数据、查同步进度；
  * - 其余 POST 交给 write-api.js：网页上的改动写进 Notion，再交给 SyncDebouncer 启动同步。
  * 两类接口都先核验 Cloudflare Access 的登录凭证。
  *
@@ -154,9 +156,10 @@ export class SyncDebouncer extends DurableObject {
   }
 }
 
-// 页面网址：/<平台>（博主），/creator 同博主，/collect 收藏，/like 喜欢；没有数据库的平台也认，页面上自己换到有数据的平台
-const PAGE = new RegExp(`^/(?:${Object.keys(NAMES).join("|")})(?:/(?:creator|collect|like))?/?$`);
-const DATA = /^\/api\/([a-z]+)\/(creators|videos|summary)$/;
+// 页面网址：/<平台>（博主），/creator 同博主，/collect 收藏，/like 喜欢，/douban/book/<编号> 一本书的详情，
+// /douban/movie 影视页，/douban/movie/<编号> 一部影片的详情；没有数据库的平台也认，页面上自己换到有数据的平台
+const PAGE = new RegExp(`^/(?:(?:${Object.keys(NAMES).join("|")})(?:/(?:creator|collect|like))?|douban/book/[0-9]+|douban/movie(?:/[0-9]+)?)/?$`);
+const DATA = /^\/api\/([a-z]+)\/(creators|videos|movies|summary)$/;
 // 不是 HOST 的请求里，路径以这些段开头的跳到 HOST（比如网站从主站某个路径搬到独立域名后，旧地址照样能用）
 const prefixes = (env) => (env.REDIRECT_PREFIXES ?? "").split(",").map((s) => s.trim().replace(/^\/|\/$/g, "")).filter(Boolean);
 

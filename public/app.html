@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700;900&display=swap" rel="stylesheet">
 <style>
-/* 浅色纸张底（方案二的浅色版）。每个分类一组「底色、点缀色、文字色」，内容页与博主页共用 */
+/* 浅色纸张底。每个分类一组「底色、点缀色、文字色」，内容页与博主页共用 */
 :root{
   --canvas:#F5F3EF; --card:#FFFFFF; --glass:rgba(255,255,255,.72); --ink:#16151A; --ink-2:#5F5B66; --ink-3:#A29EA8;
   --line:rgba(22,21,26,.07); --hover:rgba(22,21,26,.05); --field:rgba(22,21,26,.06); --focus:rgba(35,131,226,.55);
@@ -40,8 +40,9 @@ aside{display:flex;flex-direction:column;min-height:0;padding:18px 14px 12px 18p
 .brand b{font:900 23px/1.1 "Noto Serif SC",serif;letter-spacing:.14em}
 .brand small{display:flex;align-items:center;gap:7px;margin-top:6px;font:600 9.5px/1 "Inter",sans-serif;letter-spacing:.34em;color:var(--ink-3)}
 .brand small::before{content:"";width:14px;height:1px;background:currentColor}
-.plats{display:flex;gap:3px;padding:3px;margin:0 0 16px;border-radius:12px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line)}
-/* 按字数分宽度：「Bilibili」「WeChat」比别的平台名长，等宽时挤 */
+/* 加了豆瓣，六个英文名在 240px 里排不下一行（原来五个已经贴边），宽屏分两行、每行三个等宽；窄屏侧栏够宽，仍排一行（见文末窄屏规则） */
+.plats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:3px;margin:0 0 16px;border-radius:12px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line)}
+/* 窄屏排成一行时按字数分宽度：「Bilibili」「WeChat」比别的平台名长，等宽时挤 */
 .plat{flex:1 1 auto;display:flex;align-items:center;justify-content:center;height:30px;padding:0 4px;border:0;border-radius:9px;background:none;font-size:12px;font-weight:500;color:var(--ink-3);white-space:nowrap;cursor:pointer;transition:color .15s,background-color .15s}
 .plat:hover:not(:disabled){color:var(--ink)}
 .plat[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(22,21,26,.1)}
@@ -91,6 +92,21 @@ aside{display:flex;flex-direction:column;min-height:0;padding:18px 14px 12px 18p
 .cat .tx{min-width:0;flex:1;display:flex;align-items:baseline;gap:8px}
 .cat .tx b{min-width:0;flex:1;font-size:13.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cat .tx span{flex:none;font-size:12px;color:var(--ink-3);line-height:1.35}
+/* 子分类：侧栏只管一级分类；选中一个有子分类的分类后，列表上方出分类标题和一排标签，
+   第一个「全部」，其后按人数从多到少，选中的填黑。标签多时自动换行，全部摊开，不横向滑动 */
+.subbar{margin:0 0 18px}
+.subhead{display:flex;align-items:baseline;gap:10px;margin:2px 0 12px}
+.subhead h2{margin:0;font:700 20px/1.25 "Noto Sans SC",sans-serif;letter-spacing:.01em}
+.subhead span{font-size:13px;color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{flex:none;display:inline-flex;align-items:baseline;gap:6px;height:32px;padding:6px 13px;border:0;border-radius:99px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);font-size:13px;font-weight:500;color:var(--ink-2);white-space:nowrap;cursor:pointer;transition:background-color .15s,color .15s}
+.chip span{font-size:11.5px;color:var(--ink-3)}
+.chip:hover{background:#fff;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;box-shadow:none}
+.chip[aria-pressed=true] span{color:rgba(255,255,255,.62)}
+.chip:disabled{opacity:.45;cursor:default;background:transparent}
+.chip:disabled:hover{color:var(--ink-2)}
+.k em{font-style:normal;opacity:.72}
 .foot{display:flex;align-items:center;gap:8px;margin-top:6px;padding:9px 8px;border-radius:10px;color:var(--ink-2);text-decoration:none;font-size:12.5px;white-space:nowrap;transition:background-color .15s,color .15s}
 .foot:hover{background:var(--hover);color:var(--ink)}
 button.foot{width:100%;border:0;background:none;cursor:pointer;text-align:left}
@@ -180,10 +196,6 @@ main{flex:1;display:flex;flex-direction:column}
 .band hr{flex:1;border:0;border-top:1px solid var(--line);margin:0}
 /* 「名称」排列没有分档标题，第一行卡片与页头留出与分档时相同的间距 */
 main>.grid:first-child{margin-top:6px}
-.crumb{display:flex;align-items:baseline;gap:8px;margin:6px 0 18px;font-size:14px;color:var(--ink-3)}
-.crumb button{border:0;background:none;padding:0;font-size:14px;color:var(--ink-3);cursor:pointer}
-.crumb button:hover{color:var(--ink)}
-.crumb b{font-size:20px;font-weight:700;color:var(--ink)}
 .sk{height:110px;border-radius:20px;background:var(--hover);animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.5}}
 .state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 0}
@@ -205,7 +217,7 @@ main>.grid:first-child{margin-top:6px}
 .star{margin:-6px -8px -6px -2px}
 .more{margin:-6px -8px -6px 0}
 .star+.more{margin-left:2px}
-.card:hover .star,.star:focus-visible,.star[aria-pressed=true],.card:hover .more,.poster:hover .more,.art:hover .more,.more:focus-visible,.more[aria-expanded=true]{opacity:1}
+.card:hover .star,.bk:hover .star,.star:focus-visible,.star[aria-pressed=true],.card:hover .more,.poster:hover .more,.art:hover .more,.bk:hover .more,.more:focus-visible,.more[aria-expanded=true]{opacity:1}
 .star:hover,.more:hover,.more[aria-expanded=true]{background:var(--hover);color:var(--ink)}
 .star:active{transform:scale(.88)}
 .star[aria-pressed=true],.star[aria-pressed=true]:hover{color:var(--star)}
@@ -245,8 +257,8 @@ main>.grid:first-child{margin-top:6px}
 .grain::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:.22;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
 /* 图形垫在文字下面：卡片自成层叠上下文，图形放到 -1 层，文字不用定位，整卡链接的伪元素才能以卡片为准铺满 */
-.poster,.folder{position:relative;overflow:hidden;isolation:isolate;background:var(--bg);color:var(--ink)}
-.poster .mo,.folder .mo{position:absolute;inset:0;z-index:-1;width:100%;height:100%;color:var(--ac);pointer-events:none}
+.poster{position:relative;overflow:hidden;isolation:isolate;background:var(--bg);color:var(--ink)}
+.poster .mo{position:absolute;inset:0;z-index:-1;width:100%;height:100%;color:var(--ac);pointer-events:none}
 /* 内容卡片的几何图形只占顶上一条（与分类同一行），不压到日期和正文 */
 .poster .mo{inset:0 0 auto auto;height:auto;aspect-ratio:212/58}
 .poster{flex:none;width:212px;aspect-ratio:3/4;border-radius:18px;padding:16px 16px 14px;display:flex;flex-direction:column;
@@ -258,27 +270,30 @@ main>.grid:first-child{margin-top:6px}
 .poster .c svg{flex:none}
 .poster .more{margin:-4px -6px -4px 0;background:color-mix(in srgb,#fff 70%,transparent);color:var(--ink)}
 .poster .more:hover,.poster .more[aria-expanded=true]{background:#fff}
-/* 内容卡片的星标：只在收藏里有，标了星的视频进收藏夹里的「星标」 */
+/* 内容卡片的星标 */
 .poster .star{margin:-4px 0 -4px 0;background:color-mix(in srgb,#fff 70%,transparent);color:var(--ink)}
 .poster .star:hover{background:#fff}
 .poster:hover .star{opacity:1}
 .poster .star[aria-pressed=true]{color:var(--star)}
 .poster .star+.more{margin-left:0}
 /* 「也在另一个库里」的小标记放在底栏点赞数前面，不和右上角的星标挤在一起，也不压在顶上的图形上，不用星标的琥珀色 */
-.libic{flex:none;display:grid;place-items:center;width:18px;height:18px;margin:-2px 0 -2px auto;border-radius:50%;background:color-mix(in srgb,#fff 70%,transparent)}
-.poster .m .libic+span:last-child{margin-left:0}
-.libic svg{width:11px;height:11px}
-.libic.L{color:var(--gone)}
-.libic.K{color:var(--ink-2)}
+/* 底栏的收藏、喜欢按钮：在那个库里（没取消）是实心，不在是空心；要压在盖满卡片的链接（.hit::after）上面，同星标 */
+.poster .m .libs{flex:none;display:flex;gap:4px;margin-left:auto}
+.libbtn{position:relative;z-index:1;flex:none;display:grid;place-items:center;width:20px;height:20px;margin:-3px 0;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,#fff 70%,transparent);color:var(--ink-3);cursor:pointer}
+.libbtn:hover{background:#fff}
+.libbtn svg{width:12px;height:12px}
+.libbtn[aria-pressed=true].L{color:var(--gone)}
+.libbtn[aria-pressed=true].K{color:var(--ink-2)}
 .poster p{margin:14px 0 14px;font:600 16.5px/1.6 "Noto Serif SC",serif;letter-spacing:.01em;word-break:break-word;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
 .poster .m{display:flex;gap:8px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--ink) 18%,transparent);font-size:11px;letter-spacing:.02em;color:color-mix(in srgb,var(--ink) 62%,transparent);white-space:nowrap}
 .poster .m .au{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-/* 卡片上的发布日期：正文上方单独一行小字（底栏放不下），正文少显示一行 */
+.poster .m .num,.poster .m .when{flex:none}
+/* 卡片上的发布日期：正文上方单独一行小字，正文少显示一行 */
 .poster .pd{margin:14px 0 6px;font:500 11px/1.4 "Inter","Noto Sans SC",sans-serif;letter-spacing:.04em;color:color-mix(in srgb,var(--ink) 55%,transparent)}
 .poster .pd+p{margin:0 0 14px;-webkit-line-clamp:5}
 /* 卡片文字一律靠上，底栏压到最下 */
 .poster .m{margin-top:auto}
-/* 编辑文字的铅笔：正文末行右侧、分隔线上方，平时隐藏，移到卡片上才出现 */
+/* 编辑文字的铅笔：正文末行右侧、分隔线上方，平时隐藏，移到卡片上才出现；抖音、X、小红书都有 */
 .poster .ed{position:absolute;right:10px;bottom:48px;z-index:2;width:28px;height:28px;border:0;border-radius:8px;background:color-mix(in srgb,#fff 72%,transparent);color:var(--ink);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s,background-color .15s}
 .poster:hover .ed,.poster .ed:focus-visible{opacity:1}
 .poster .ed:hover{background:#fff}
@@ -300,33 +315,12 @@ main>.grid:first-child{margin-top:6px}
 .poster.gone{filter:saturate(.2);opacity:.8}
 .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
 .vgrid .poster{width:auto;content-visibility:auto;contain-intrinsic-size:auto 280px}
-/* 收藏夹第一级：每个收藏夹一张色块，按名字配图标与配色 */
-.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:6px}
-.folder{height:178px;border:0;border-radius:22px;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;text-align:left;cursor:pointer;
-  box-shadow:0 22px 40px -28px rgba(22,21,26,.55),inset 0 0 0 1px rgba(22,21,26,.06);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
-.folder:hover{transform:translateY(-3px)}
-.folder .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--ink);color:var(--bg)}
-.folder b{display:block;font:700 24px "Noto Serif SC",serif}
-.folder i{font-style:normal;font-size:12px;letter-spacing:.06em;color:color-mix(in srgb,var(--ink) 60%,transparent)}
-/* 新建收藏夹：虚线画一个带标签页的空文件夹，里面一个加号；点开后同一个轮廓里输入名字 */
-.folder.new{align-items:center;justify-content:center;gap:10px;background:none;border:0;box-shadow:none;color:var(--ink-2);text-align:center}
-.folder.new svg.shape{position:absolute;inset:0;width:100%;height:100%;z-index:-1;color:rgba(22,21,26,.22);transition:color .2s}
-.folder.new .plus{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(22,21,26,.06);color:var(--ink);transition:background-color .2s,color .2s}
-.folder.new:hover svg.shape{color:rgba(22,21,26,.5)}
-.folder.new:hover .plus{background:var(--ink);color:#fff}
-.folder.new b{font:600 14px "Noto Sans SC",sans-serif}
-.folder.new.editing{cursor:default;padding:20px 32px}
-.folder.new.editing:hover{transform:none}
-.folder.new.editing svg.shape{color:var(--ink)}
-.folder.new input{width:100%;border:0;background:none;padding:2px 0;font:700 22px "Noto Serif SC",serif;color:var(--ink);text-align:center;outline:none}
-.folder.new input::placeholder{color:var(--ink-3)}
-.folder.new.editing i{font-size:12px}
 /* ===== 微信：只有一页公众号文章，白卡，底部是公众号与收藏日期；侧栏按公众号分类 ===== */
 .wgrid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
 .art{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px 18px 14px;border-radius:18px;background:var(--card);box-shadow:0 1px 2px rgba(22,21,26,.04),0 0 0 1px var(--line);transition:box-shadow .2s,transform .2s cubic-bezier(.2,.8,.2,1);content-visibility:auto;contain-intrinsic-size:auto 132px}
 .art:hover{box-shadow:0 18px 32px -20px rgba(22,21,26,.35),0 0 0 1px var(--line);transform:translateY(-2px)}
 .art:has(.hit:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
-/* 卡片只有标题：衬线粗体，最多三行 */
+/* 卡片只留标题：衬线粗体，最多三行 */
 .art p{margin:0;min-height:calc(15px * 1.6 * 2);font:700 15px/1.6 "Noto Serif SC",serif;color:var(--ink);word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 /* 改标题：右上角铅笔按钮，悬停才出现；点了标题原地变输入框。和改公众号（右下角「…」）分开 */
 .art .pen{position:absolute;top:10px;right:10px;z-index:1;width:28px;height:28px;border:0;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,transparent);color:var(--ink-3);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s,color .15s,background-color .15s}
@@ -360,7 +354,64 @@ main>.grid:first-child{margin-top:6px}
 .abtn.primary{background:var(--ink);color:#fff;box-shadow:none}
 .abtn.primary:hover{background:color-mix(in srgb,var(--ink) 86%,#fff)}
 .tile.ini{font:700 14px/1 "Noto Serif SC",serif}
-@media (prefers-reduced-motion:reduce){.sk{animation:none}.card,.card:hover,.poster,.poster:hover,.folder,.folder:hover,.art,.art:hover{transition:none;transform:none}}
+/* ===== 豆瓣：书架，封面网格，书名与作者写在封面下方（参考微信读书书架、Apple Books、Literal） ===== */
+/* 分类或专题还没分好时侧栏列表处的一句说明 */
+.libnote{margin:0;padding:4px 8px;font-size:12.5px;line-height:1.6;color:var(--ink-3)}
+.ahead+.band{margin-top:6px}
+.shelf{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:24px 22px;align-items:start}
+.bk{position:relative;display:flex;flex-direction:column;gap:11px;min-width:0;content-visibility:auto;contain-intrinsic-size:auto 300px}
+.bk:has(.hit:focus-visible) .cv{outline:2px solid var(--focus);outline-offset:3px}
+/* 没有封面图时用排版生成书封：按书名和豆瓣链接稳定取一组分类配色，单位跟着封面宽度走（cqw），任何列宽下版式比例不变 */
+.cv{position:relative;overflow:hidden;isolation:isolate;container-type:inline-size;aspect-ratio:5/7;border-radius:3px 7px 7px 3px;background:var(--bg);color:var(--ink);--hl:var(--ac);
+  box-shadow:0 1px 1px rgba(22,21,26,.06),0 18px 30px -20px rgba(22,21,26,.35),inset 0 0 0 1px rgba(22,21,26,.06);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.bk:hover .cv{transform:translateY(-4px);box-shadow:0 1px 1px rgba(22,21,26,.06),0 28px 40px -22px rgba(22,21,26,.35),inset 0 0 0 1px rgba(22,21,26,.06)}
+/* 书脊：左缘一道压痕和高光，像精装书的折口；真封面上也留着 */
+.cv::before{content:"";position:absolute;inset:0 auto 0 0;z-index:3;width:4.5%;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,0,0,.12),rgba(255,255,255,.22) 38%,rgba(0,0,0,.08) 62%,transparent)}
+/* 真封面盖在生成的书封上面；读不到图时脚本拿掉它，露出下面那一张 */
+.cv img{position:absolute;inset:0;z-index:2;width:100%;height:100%;object-fit:cover}
+/* 深色书封：点缀色作布面，文字用浅底色 */
+.cv.deep{background:color-mix(in srgb,var(--ac) 90%,#000);color:var(--bg);--hl:color-mix(in srgb,var(--bg) 72%,transparent)}
+/* 图形只占右上半幅，左上的出版社不会压到图形上 */
+.cv .mo{position:absolute;inset:0 0 auto auto;z-index:-1;width:44%;height:auto;aspect-ratio:94/120;color:var(--ac);opacity:.8;pointer-events:none}
+.cv.deep .mo{color:var(--bg);opacity:.2}
+/* 横排：左上是出版社（同内容卡片左上的分类名，后接细线），右上几何图形，书名与作者压在下半。
+   cqw 只能用在封面里面的元素上（封面自身的内边距会按视口算），所以版心放在内层 .ci */
+.cv.h .ci{position:absolute;inset:0;display:flex;flex-direction:column;padding:9cqw 8cqw 8.5cqw 11cqw}
+.cvl{display:flex;align-items:center;gap:3cqw;min-width:0;max-width:56%;font:600 5.4cqw/1 "Inter","Noto Sans SC",sans-serif;letter-spacing:.1em;color:var(--hl);white-space:nowrap}
+.cvl span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cvl::after{content:"";flex:1 0 3cqw;height:1px;background:currentColor;opacity:.4}
+.cv.h .cvt{margin-top:auto;font:700 calc(var(--ts) * 1cqw)/1.32 "Noto Serif SC",serif;letter-spacing:.02em;word-break:break-word;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.cv.h .cvs{margin-top:2.5cqw;font:500 5.8cqw/1.4 "Noto Sans SC",sans-serif;color:color-mix(in srgb,currentColor 72%,transparent);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cv.h .cvr{width:9cqw;height:1.5px;margin:5.5cqw 0 4.5cqw;background:var(--hl)}
+.cv.h .cva{font:500 6.2cqw/1.4 "Inter","Noto Sans SC",sans-serif;letter-spacing:.05em;color:color-mix(in srgb,currentColor 74%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 竖排：右上一条题签，书名竖写在签里，作者竖写在签左，出版社横写在左下（参考线装书的题签） */
+.cv.v .col{position:absolute;top:9cqw;right:9cqw;display:flex;flex-direction:row-reverse;align-items:flex-start;gap:4cqw}
+.cv.v .cvt{writing-mode:vertical-rl;padding:6cqw 3.6cqw;font:700 calc(var(--ts) * 1cqw)/1 "Noto Serif SC",serif;letter-spacing:var(--tl,.16em);
+  background:color-mix(in srgb,#fff 58%,var(--bg));color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ac) 30%,transparent),0 1px 2px rgba(22,21,26,.06)}
+.cv.v.deep .cvt{background:var(--bg)}
+.cv.v .cva{writing-mode:vertical-rl;padding-top:6.5cqw;font:500 6.2cqw/1 "Noto Sans SC",sans-serif;letter-spacing:.12em;color:color-mix(in srgb,currentColor 72%,transparent)}
+.cv.v .cvl{position:absolute;left:11cqw;bottom:8.5cqw;max-width:64%}
+.cv.v .cvl::after{display:none}
+/* 封面下方：书名衬线两行，作者一行；带短评的另起一行 */
+.bi{display:flex;flex-direction:column;gap:3px;min-width:0;padding:0 1px}
+.bt{margin:0;font:600 13.5px/1.45 "Noto Serif SC",serif;color:var(--ink);word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ba{font-size:12px;line-height:1.45;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 星标与「…」放在作者那一行的右端，不压在封面上：竖排书封的题签、真封面的图案都在封面右上角 */
+.bm{display:flex;align-items:center;gap:2px;min-width:0}
+.bm .ba{flex:1;min-width:0}
+.bm .star{margin:-6px 0 -6px 2px}
+.bm .more{margin:-6px 0}
+.bm .star+.more{margin-left:0}
+/* 焦点框画在按钮里面：外扩 2px 的焦点框会伸出卡片右边和底边，被卡片的 content-visibility 裁掉一截 */
+.bm .star:focus-visible,.bm .more:focus-visible{outline-offset:-2px}
+/* 卡片带 content-visibility，伸出卡片的部分会被裁掉：按钮右边不伸出去，底下留出按钮的悬停底色，书架的行距相应减掉 */
+.bk{padding-bottom:8px}
+.bk .when{font-size:12px;line-height:1.45}
+/* 近期取消里的书，封面褪色，同内容页取消了的卡片 */
+.bk.gone .cv{filter:saturate(.2);opacity:.8}
+.bc{margin-top:4px;padding-left:8px;border-left:2px solid var(--line);font-size:12px;line-height:1.5;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}.card,.card:hover,.poster,.poster:hover,.art,.art:hover,.cv,.bk:hover .cv{transition:none;transform:none}}
 
 /* 窄屏：侧栏变成顶部一条横向分类带，主区整页滚动 */
 @media (max-width:900px){
@@ -371,12 +422,161 @@ main>.grid:first-child{margin-top:6px}
   .panel{overflow:visible}
   .head{position:static;flex-wrap:wrap}.search{flex:1 1 100%}
   .grid{grid-template-columns:1fr}
+  .plats{display:flex}
+  .shelf{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 16px}
 }
+/* 只在手机宽度固定两列；平板宽度沿用按最小宽度自动排列，封面不会被放得过大 */
+@media (max-width:520px){.shelf{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 豆瓣一本书的详情页，见脚本里 renderBook */
+.dcrumb{display:flex;align-items:center;gap:6px;margin:2px 0 0;font-size:13px;color:var(--ink-3)}
+.dcrumb button{display:inline-flex;align-items:center;gap:2px;height:30px;margin-left:-8px;padding:0 10px 0 6px;border:0;border-radius:999px;background:none;font:inherit;font-weight:600;color:var(--ink-2);cursor:pointer}
+.dcrumb button:hover{background:var(--hover);color:var(--ink)}
+.dhero{position:relative;isolation:isolate;margin:14px calc(-1 * var(--pad)) 0;padding:44px var(--pad) 0}
+.dhero::before{content:"";position:absolute;inset:0 0 auto;height:330px;z-index:-1;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 85%,transparent),color-mix(in srgb,var(--bg) 0%,var(--canvas)) 100%)}
+.dgrid{display:grid;grid-template-columns:248px minmax(0,1fr);gap:64px;align-items:start;max-width:1120px}
+.drail{position:sticky;top:96px;display:flex;flex-direction:column;gap:10px}
+.dbook{position:relative;margin-bottom:12px;filter:drop-shadow(0 30px 28px rgba(22,21,26,.22)) drop-shadow(0 4px 6px rgba(22,21,26,.08))}
+.dbook .cv{border-radius:2px 6px 6px 2px}
+.dbook{cursor:zoom-in}
+/* 点封面放大：深色半透明底盖满窗口，封面按窗口高度放大居中；点空白处、右上角关闭或按 Esc 收起 */
+.dzoom{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:4vh 4vw;background:rgba(22,21,26,.82);backdrop-filter:blur(6px);cursor:zoom-out;animation:dzoomIn .18s ease-out}
+.dzoom .zbook{width:min(calc(88vh * 5 / 7),88vw);filter:drop-shadow(0 40px 60px rgba(0,0,0,.45));animation:dzoomPop .22s cubic-bezier(.2,.8,.3,1)}
+.dzoom .zbook .cv{border-radius:3px 8px 8px 3px}
+.dzoom .zbook > img{display:block;width:100%;border-radius:3px 8px 8px 3px}
+.dzoom .zx{position:absolute;top:18px;right:18px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:22px;line-height:40px;cursor:pointer}
+.dzoom .zx:hover{background:rgba(255,255,255,.26)}
+@keyframes dzoomIn{from{opacity:0}}
+@keyframes dzoomPop{from{transform:scale(.92);opacity:0}}
+.dbook::after{content:"";position:absolute;inset:0 auto 0 0;width:14px;pointer-events:none;border-radius:2px 0 0 2px;background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(255,255,255,.18) 35%,rgba(0,0,0,.06) 70%,transparent)}
+.dbtns{display:contents}
+.dbtn{display:flex;align-items:center;justify-content:center;gap:8px;height:44px;border:0;border-radius:12px;background:var(--card);box-shadow:0 0 0 1px var(--line);font-size:14px;font-weight:600;color:var(--ink);text-decoration:none;cursor:pointer}
+.dbtn.pri{background:var(--ink);color:#fff;box-shadow:0 10px 22px -12px rgba(22,21,26,.6)}
+.dbtn .ext{opacity:.5}
+.dsmall{display:flex;justify-content:center;gap:18px;margin-top:4px;font-size:12.5px;color:var(--ink-3)}
+.dsmall button{border:0;background:none;padding:4px 2px;font:inherit;color:inherit;cursor:pointer}
+.dsmall button:hover{color:var(--gone)}
+.dmain{min-width:0;max-width:760px}
+.dseries{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;letter-spacing:.06em;color:color-mix(in srgb,var(--ac) 80%,var(--ink))}
+.dseries::before{content:"";width:18px;height:2px;border-radius:2px;background:currentColor}
+.dtitle{margin:14px 0 0;font:900 44px/1.18 "Noto Serif SC",serif;letter-spacing:.03em;color:var(--ink)}
+.dsub{margin:10px 0 0;font:500 19px/1.5 "Noto Serif SC",serif;color:var(--ink-2)}
+.dorig{margin:6px 0 0;font:italic 400 15px/1.5 Georgia,"Times New Roman",serif;color:var(--ink-3)}
+.dby{margin:18px 0 0;font-size:15px;color:var(--ink-2)}
+.dby a{font-weight:600;color:var(--ink);text-decoration:none}
+.dby .sep{margin:0 10px;color:var(--ink-3)}
+.drate{display:flex;align-items:center;gap:22px;margin-top:26px;padding:18px 22px;border-radius:16px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--line);backdrop-filter:blur(8px)}
+.drate .num{font:700 40px/1 Inter,sans-serif;letter-spacing:-.02em;color:var(--ink)}
+.drate .src{display:block;margin-top:6px;font-size:11.5px;font-weight:600;letter-spacing:.06em;color:var(--fresh)}
+.dstars{display:flex;gap:2px;color:var(--star)}
+.drate .votes{margin-top:6px;font-size:12.5px;color:var(--ink-3)}
+.ddist{flex:1;display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:11.5px;color:var(--ink-3);max-width:300px;margin-left:auto}
+.ddist i{display:block;height:6px;border-radius:6px;background:var(--field);overflow:hidden}
+.ddist i b{display:block;height:100%;border-radius:inherit;background:var(--star)}
+.dtags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.dtag{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:999px;font-size:13px;font-weight:600;text-decoration:none}
+.dtag.g{background:var(--bg);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ac) 22%,transparent)}
+.dtag.z{background:var(--card);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line)}
+.dtag.z::before{content:"#";font-weight:500;color:var(--ink-3)}
+.dsec{margin-top:52px}
+.dsec>h2{display:flex;align-items:baseline;gap:10px;margin:0 0 16px;font:700 21px/1.3 "Noto Serif SC",serif;color:var(--ink)}
+.dsec>h2 small{font:500 13px/1 Inter,"Noto Sans SC",sans-serif;color:var(--ink-3)}
+/* 我的短评：一张折了角的纸，和折角的标志同一个样子（米白纸面、右上角折下的蓝色三角）。
+   纸面用遮罩切掉右上角，折下的那一角另画，阴影用 drop-shadow 才能跟着切口走 */
+.dnote{position:relative;margin-top:30px;filter:drop-shadow(0 1px 1px rgba(22,21,26,.08)) drop-shadow(0 18px 22px rgba(22,21,26,.10))}
+.dnote .paper{padding:22px 76px 24px 28px;border-radius:14px;background:#FFFDF8;-webkit-mask:linear-gradient(225deg,transparent 33px,#000 33.5px);mask:linear-gradient(225deg,transparent 33px,#000 33.5px)}
+.dnote .flap{position:absolute;top:0;right:0;width:47px;height:47px;border-bottom-left-radius:7px;background:linear-gradient(135deg,#6A77E6,#3B46B4);clip-path:polygon(0 0,0 100%,100% 100%)}
+/* 折角投在纸面上的影子：clip-path 会把自身的阴影一起切掉，所以单独画一块模糊的三角 */
+.dnote .fsh{position:absolute;top:5px;right:2px;width:47px;height:47px;background:linear-gradient(45deg,rgba(22,21,26,.32) 50%,transparent 50%);filter:blur(2.5px)}
+.dnote .lab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.12em;color:#3B46B4}
+.dnote .lab::before{content:"";width:16px;height:2px;border-radius:2px;background:currentColor}
+.dnote p{margin:12px 0 0;font:600 21px/1.7 "Noto Serif SC",serif;color:var(--ink);text-wrap:pretty;text-align:justify}
+/* 已写：右下角「修改」，平时淡、悬停才清楚，和豆瓣自己短评旁的「修改」同名 */
+.dnote .edit{position:absolute;right:18px;bottom:14px;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border:0;border-radius:999px;background:none;font-size:12.5px;font-weight:600;color:var(--ink-3);cursor:pointer}
+/* 未写：纸还没折，右上角只画一道虚线折痕；纸面淡、没有投影，整张都能点 */
+.dnote.empty,.dnote.editing{filter:none}
+.dnote.empty .paper,.dnote.editing .paper{-webkit-mask:none;mask:none}
+.dnote.empty .paper{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;min-height:112px;padding:22px 22px 22px 28px;background:rgba(255,253,248,.55);box-shadow:inset 0 0 0 1.5px rgba(59,70,180,.18);cursor:pointer}
+.dnote.empty .cta{position:static;margin:0;flex:none}
+.dnote .etxt{align-self:center;min-width:0}
+.dnote .eh{font:600 19px/1.5 "Noto Serif SC",serif;color:var(--ink-2)}
+.dnote .ed{margin-top:4px;font-size:13px;line-height:1.6;color:var(--ink-3)}
+.dnote .guide{position:absolute;top:0;right:0;width:47px;height:47px;pointer-events:none;border-top-right-radius:14px;overflow:hidden}
+.dnote .cta{position:absolute;right:22px;bottom:22px;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border:0;border-radius:999px;background:#3B46B4;color:#fff;font-size:13.5px;font-weight:600;box-shadow:0 10px 20px -12px rgba(59,70,180,.9);cursor:pointer}
+/* 正在写：就地展开成输入框，不弹窗 */
+.dnote.editing .paper{background:#FFFDF8;box-shadow:0 0 0 2px rgba(59,70,180,.45),0 18px 30px -22px rgba(22,21,26,.35)}
+.dnote textarea{display:block;width:100%;min-height:72px;margin:10px 0 0;padding:0;border:0;outline:0;resize:none;background:none;font:600 21px/1.7 "Noto Serif SC",serif;color:var(--ink)}
+.dnote textarea::placeholder{color:color-mix(in srgb,var(--ink) 30%,transparent)}
+.dnote .bar{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+.dnote .bar .count{margin-left:auto}
+.dnote .bar .count b{font-weight:600;color:var(--ink-2)}
+.dnote .bar button{height:34px;padding:0 14px;border:0;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.dnote .bar .cancel{background:none;color:var(--ink-2)}
+.dnote .bar .save{background:var(--ink);color:#fff}
+.dnote .bar .save[disabled]{opacity:.3;cursor:default}
+.dnote .bar .del{padding:0 6px 0 0;background:none;color:var(--gone)}
+.dintro{margin:0;font:400 16px/1.95 "Noto Serif SC",serif;color:color-mix(in srgb,var(--ink) 88%,transparent);text-align:justify}
+.dtoc{display:grid;grid-template-columns:1fr;gap:0;margin:0;padding:0;list-style:none;counter-reset:c}
+.dtoc li{display:flex;gap:12px;padding:11px 0 11px calc(var(--lv,0) * 28px);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink)}
+.dtoc li span{flex:none;min-width:var(--lw,0em)}
+.dtoc li span:empty{display:none}
+/* 目录分层：有两层以上时，最上一层加粗、上面多留空，下面各层依次缩进，第三层字淡一些；只有一层时不分层 */
+.dtoc li.l0{padding-top:18px;font-size:15px;font-weight:700}
+/* 层级只靠字重、字号、缩进与灰度区分，不另加颜色；同一行的编号与标题同一颜色：卷与章深色（卷最重、章半粗），节常规偏灰 */
+.dtoc li.l1{font-weight:600}
+.dtoc li.l2{color:var(--ink-2);font-size:13.5px}
+.dtoc li.l3{color:var(--ink-2);font-size:13px}
+.dmore{display:inline-flex;align-items:center;gap:4px;margin-top:14px;border:0;background:none;padding:0;font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.dinfo{display:grid;grid-template-columns:repeat(2,72px minmax(0,1fr));gap:0 20px;margin:0;font-size:14px}
+.dinfo dt,.dinfo dd{margin:0;padding:12px 0;border-bottom:1px solid var(--line)}
+.dinfo dt{color:var(--ink-3)}
+/* 不截断：长值（如两卷各一个 ISBN）按资料里的换行分行，仍放不下就折行 */
+.dinfo dd{color:var(--ink);min-width:0;white-space:pre-line;overflow-wrap:anywhere}
+.dinfo a{color:var(--ink);text-decoration:none;box-shadow:inset 0 -1px 0 rgba(22,21,26,.2)}
+/* 影片信息的项名最长是「制片国家/地区」，72px 放不下一行，项名一栏放宽 */
+.dinfo.mv{grid-template-columns:repeat(2,100px minmax(0,1fr))}
+.drow{margin-top:56px}
+.drow .rh{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.drow .rh h2{margin:0;font:700 21px/1.3 "Noto Serif SC",serif;color:var(--ink)}
+.drow .rh h2 em{font-style:normal;font-weight:500;color:var(--ink-3)}
+.drow .rh .arr{margin-left:auto;display:flex;gap:6px}
+.drow .rh .arr button{width:34px;height:34px;border:0;border-radius:50%;background:var(--card);box-shadow:0 0 0 1px var(--line);color:var(--ink-2);display:grid;place-items:center;cursor:pointer}
+.drow .rh a{font-size:13px;font-weight:500;color:var(--ink-2);text-decoration:none}
+.dstrip{width:0;min-width:100%;display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:22px;overflow:hidden;padding-bottom:4px}
+.dstrip .bk{padding-bottom:0}
+@media (max-width:720px){
+  .dhero{padding-top:20px}
+  .dgrid{grid-template-columns:minmax(0,1fr);gap:28px}
+  .drail{position:static;align-items:center;width:100%}
+  .dbook{width:min(210px,58%)}
+  .dbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+  .dmain{text-align:left}
+  .dtitle{font-size:31px}
+  .drate{flex-wrap:wrap;gap:16px;padding:16px}
+  .drate .num{font-size:34px}
+  .ddist{flex-basis:100%;max-width:none;margin-left:0}
+  .dtoc{grid-template-columns:1fr}
+  .dinfo{grid-template-columns:72px minmax(0,1fr)}
+  .dinfo.mv{grid-template-columns:100px minmax(0,1fr)}
+  .dstrip{grid-auto-columns:128px;gap:16px;overflow-x:auto;margin-right:calc(-1 * var(--pad))}
+  .drow .rh .arr{display:none}
+  .dnote .paper{padding-right:28px}
+  .dnote .cta{position:static;margin-top:16px}
+  .dnote.empty .paper{flex-direction:column;align-items:stretch;gap:0}
+  .dnote.empty .etxt{align-self:stretch;padding-right:36px}
+  .dnote.empty .cta{align-self:flex-end;margin-top:16px}
+  .dnote .bar{flex-wrap:wrap}
+  .dnote .bar>span:not(.count){flex-basis:100%;order:-1}
+}
+.dstrip{overflow-x:auto;scrollbar-width:none}
+.dstrip::-webkit-scrollbar{display:none}
+.dtoc:not(.open) li.extra{display:none}
+.dby b{font-weight:600;color:var(--ink)}
+.dbtns .dbtn{width:100%}
 </style>
 </head>
 <body>
 <aside>
-  <!-- 标志「折角」：把值得留下的那页折个角；圆是关注的人（与 icon.svg 同一图形） -->
+  <!-- 标志「折角」：把值得留下的那页折个角；圆是关注的人 -->
   <a class="brand" href="/" title="回到首页">
     <svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="brand-fold"><path d="M0 0H60L100 40V100H0Z"/></clipPath><linearGradient id="brand-flap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6A77E6"/><stop offset="1" stop-color="#3B46B4"/></linearGradient><filter id="brand-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter></defs><g clip-path="url(#brand-fold)"><path d="M50 0C80 0 89 0 94.5 5.5S100 20 100 50 100 89 94.5 94.5 80 100 50 100 11 100 5.5 94.5 0 80 0 50 0 11 5.5 5.5 20 0 50 0Z" fill="#FFFDF8" stroke="rgba(22,21,26,.1)" stroke-width="1.2"/></g><path d="M60 42 60 4 98 42Z" fill="rgba(22,21,26,.28)" filter="url(#brand-soft)" transform="translate(-2 4)"/><path d="M60 0V34a6 6 0 0 0 6 6H100Z" fill="url(#brand-flap)"/><circle cx="37" cy="63" r="19" fill="#16151A"/></svg>
     <div class="wm"><b>折角</b><small>FOLLOWS</small></div>
@@ -391,11 +591,13 @@ main>.grid:first-child{margin-top:6px}
   <div class="head" id="head">
     <label class="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="搜索账号" aria-label="搜索名称或简介"><kbd>/</kbd></label>
     <div class="seg" id="tabs" role="tablist" aria-label="收藏与喜欢" hidden></div>
+    <div class="seg" id="btabs" role="tablist" aria-label="读书与影视" hidden></div>
     <span class="spacer"></span>
-    <div class="seg" id="wby" role="group" aria-label="切换公众号与内容" hidden><button data-by="acct" aria-pressed="true">公众号</button><button data-by="topic" aria-pressed="false">内容</button></div><div class="seg" id="mode" role="group" aria-label="切换博主与内容"><button data-m="follows" aria-pressed="true">博主</button><button data-m="videos" aria-pressed="false">内容</button></div>
+    <div class="seg" id="wby" role="group" aria-label="切换公众号与内容" hidden><button data-by="acct" aria-pressed="true">公众号</button><button data-by="topic" aria-pressed="false">内容</button></div><div class="seg" id="bby" role="group" aria-label="切换分组方式" hidden><button data-by="pub" aria-pressed="true">出版社</button><button data-by="genre" aria-pressed="false">分类</button><button data-by="topic" aria-pressed="false">专题</button></div><div class="seg" id="mode" role="group" aria-label="切换博主与内容"><button data-m="follows" aria-pressed="true">博主</button><button data-m="videos" aria-pressed="false">内容</button></div>
     <button class="calbtn" id="calBtn" aria-expanded="false" aria-controls="cal" hidden><span class="ico"></span><span>日历</span></button>
     <div class="sort" id="arrange"><button class="sortbtn" aria-haspopup="menu" aria-expanded="false"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg><span class="lab"></span><svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="menu" role="menu" aria-label="账号排序"><div class="mh">账号排序</div><button role="menuitemradio" data-val="follow" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>关注先后</b><small>最近关注的在前</small></button><button role="menuitemradio" data-val="band" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>粉丝数</b><small>按粉丝量分档显示</small></button><button role="menuitemradio" data-val="name" aria-checked="false"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><b>名称</b><small>按拼音从 A 到 Z，不分档</small></button></div></div>
   </div>
+  <nav class="subbar" id="subbar" aria-label="子分类" hidden></nav>
   <section class="cal" id="cal" aria-label="日历" hidden></section>
   <main id="list"></main>
   <div class="sentinel" id="sentinel"></div>
@@ -408,8 +610,9 @@ const DB_URL = ""; // 你的博主数据库的 Notion 链接，填了空状态�
 // 平台：网址按平台分，/douyin 是博主，/douyin/collect 收藏，/douyin/like 喜欢。
 // 每个平台一组 Notion 数据库、各自的数据文件，点「从 Notion 同步」只同步当前平台。有数据库的平台与 src/platforms.mjs 一致，其余先列出、按钮不可点
 // 按钮上用英文名
-const PLATFORM_LIST = [["douyin", "Douyin"], ["rednote", "RedNote"], ["wechat", "WeChat"], ["x", "X"], ["bilibili", "Bilibili"]];
-const ENABLED = new Set(["douyin", "wechat", "x", "rednote"]);
+// 已接入的在前，还没接入的占位放最后
+const PLATFORM_LIST = [["douyin", "Douyin"], ["rednote", "RedNote"], ["wechat", "WeChat"], ["x", "X"], ["douban", "Douban"], ["bilibili", "Bilibili"]];
+const ENABLED = new Set(["douyin", "wechat", "x", "rednote", "douban"]);
 // 英文名或中文名都认（旧版本在本机和旧网址里记的是中文名）
 const slugOf = (name) => PLATFORM_LIST.find(([slug, label]) => name === slug || name === label)?.[0];
 const platName = (slug) => PLATFORM_LIST.find(([s]) => s === slug)?.[1] ?? slug;
@@ -439,7 +642,7 @@ const byName = new Intl.Collator("zh-Hans-CN-u-co-pinyin").compare;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fans = (n) => n >= 1e8 ? (n/1e8).toFixed(1).replace(/\.0$/,"") + " 亿" : n >= 1e4 ? (n/1e4).toFixed(1).replace(/\.0$/,"") + " 万" : n ? String(n) : "";
 const img = (a) => a ? `<img src="${esc(a)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "<i></i>";
-// 取关日期、关注日期带时刻的按本机时区取日期；只有日期的（导入时只填了日期）直接截取
+// 取关日期、关注日期都带时间，按本机时区取日期；更早的只有日期，直接截取
 const mmdd = (s) => { if (s.length > 10) { const t = new Date(s); return `${t.getMonth() + 1}月${t.getDate()}日`; } return `${+s.slice(5,7)}月${+s.slice(8,10)}日`; };
 // 本地时间的「10月2日 18:54」
 const stamp = (iso) => { const t = new Date(iso); return `${t.getMonth() + 1}月${t.getDate()}日 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`; };
@@ -457,53 +660,99 @@ const store = {
   get: (k, d) => JSON.parse(localStorage.getItem("follows." + k) ?? "null") ?? d,
   set: (k, v) => v === null ? localStorage.removeItem("follows." + k) : localStorage.setItem("follows." + k, JSON.stringify(v)),
 };
-// 排列偏好只记在本机。博主页的分类按账号数或名称排（没有拖动排序），以前记的「custom」按账号数
-const state = {view: ALL, plat: ENABLED.has(slugOf(store.get("plat", "douyin"))) ? slugOf(store.get("plat", "douyin")) : "douyin", q: "", catSort: store.get("catSort", "count") === "name" ? "name" : "count", arrange: store.get("arrange", "band"), mode: store.get("mode", "follows")};
+// 排列偏好只记在本机。博主页的分类按账号数或名称排，以前记的「custom」按账号数
+const state = {view: ALL, sub: null, plat: ENABLED.has(slugOf(store.get("plat", "douyin"))) ? slugOf(store.get("plat", "douyin")) : "douyin", q: "", catSort: store.get("catSort", "count") === "name" ? "name" : "count", arrange: store.get("arrange", "band"), mode: store.get("mode", "follows")};
 // 视频页（喜欢与收藏）：两个 Notion 数据库各自独立，同一视频在两边各有一条记录（L 喜欢、K 收藏），分类、星标、取消各管各的。
 // 数据单独一份 videos.json，切到「内容」时才读；短键名见 scripts/sync-videos.mjs
 const LIBS = {L: "喜欢", K: "收藏"};
-// X 与抖音共用博主页和内容页：收藏叫书签，内容是帖子；X 与小红书没有收藏夹库，星标记在各库的「星标」列
-// 小红书：喜欢叫点赞，内容是笔记
+// X与抖音共用博主页和内容页：收藏叫书签，内容是帖子
+// 小红书：喜欢叫点赞，内容是笔记；博主（关注）从模拟器里的 App 读来，没有头像、粉丝数和主页链接
 const isX = () => state.plat === "x";
 const isRed = () => state.plat === "rednote";
 const libName = (k) => k === "K" ? (isX() ? "书签" : LIBS.K) : (isRed() ? "点赞" : LIBS.L);
 const noun = () => isX() ? "帖子" : isRed() ? "笔记" : "视频";
-const hasFolders = () => !isX() && !isRed();
-// 按发布时间排时不按月分组、日期写在卡片正文上方（小红书和 X）
-const flatTime = () => isX() || isRed();
-// 卡片上能改文字的平台：X 与小红书写「名称」与「正文」，抖音写「名称」与「文案」（见 src/write-api.js）
+// 卡片上能改标题和正文的平台：两库的文字列都是「名称」与「正文」
+// 抖音写「文案」列（见 src/write-api.js）
 const canEditText = () => state.plat !== "wechat";
 const isDouyin = () => state.plat === "douyin";
-// 侧栏第二格：抖音收藏页是收藏夹（第一张是星标），其余（抖音喜欢页、X、小红书）是星标列表（三个平台的收藏、喜欢都能标星）
-const starPage = () => !hasFolders() || state.v.lib === "L";
-// 标了星：抖音看收藏夹库里那份复制，X 与小红书看任一库那一行的「星标」列
-const starredOf = (d) => hasFolders() ? Boolean(d.F?.s) : ["K", "L"].some((k) => d[k]?.s);
-// 有博主库的平台才有「博主、内容」切换；微信另有一页
-const hasCreators = () => state.plat !== "wechat";
+// 侧栏第二格是星标列表；标了星看任一库那一行的「星标」列，三个平台一样
+const starredOf = (d) => ["K", "L"].some((k) => d[k]?.s);
+// 有博主库的平台才有「博主、内容」切换；微信、豆瓣各只有一页
+const hasCreators = () => state.plat !== "wechat" && state.plat !== "douban";
 // 博主数据里没有粉丝数时（小红书一度只有 App 列表里的名字），博主页不出「粉丝数」排序，选着它时按关注先后排
 const hasFans = () => Boolean(data?.items?.some((d) => d.f));
+// 内容的「添加顺序」（q，如「2026-10-03 · 0001」，批次日期加编号，越晚加入编号越大）抖音、X、小红书都有；没有的平台不出「加入先后」
+const hasAddOrder = () => Boolean(vdata?.items?.some((d) => d.K?.q || d.L?.q));
+const qOf = (d) => d[state.v.lib]?.q ?? "";
+const vArrange = () => state.v.arrange === "added" && !hasAddOrder() ? "time" : state.v.arrange;
 const arrangeOf = () => state.arrange === "band" && !hasFans() ? "follow" : state.arrange;
 // 入口的显示名，地址里仍用原名
 // 三个平台的第一格都叫「全部内容」
-const vLabel = (v) => v === V.ALL ? "全部内容" : v === V.FOLDERS && starPage() ? STARRED : v;
-const V = {ALL: "全部视频", FOLDERS: "收藏夹", NEW: "近期新增", RECENT: "近期取消"};
+const vLabel = (v) => v === V.ALL ? "全部内容" : isDouban() ? bViewName(v) : v;
+const V = {ALL: "全部视频", STAR: "星标", NEW: "近期新增", RECENT: "近期取消"};
 const LIKE_BANDS = [["十万赞以上",1e5],["一万到十万赞",1e4],["一千到一万赞",1e3],["一千赞以下",0]];
-// lib 是看收藏还是喜欢（两个库各自独立，页头标签切换）；folder 是收藏夹里点进的那一个
-state.v = {view: V.ALL, arrange: store.get("varrange", "time"), lib: store.get("vlib", "K"), folder: null, catSort: store.get("vcatSort", "count") === "name" ? "name" : "count"};
+// lib 是看收藏还是喜欢（两个库各自独立，页头标签切换）
+state.v = {view: V.ALL, arrange: store.get("varrange2", "added"), lib: store.get("vlib", "K"), catSort: store.get("vcatSort", "count") === "name" ? "name" : "count"};
 let vdata = null, vLoading = null, vById = new Map();
 // 微信：只有一个库，公众号文章，数据在 wechat/videos.json（短键名见 scripts/sync-wechat.mjs）。
-// 网页上能改标题、改公众号（单篇或整个号改名）、删除文章，经 /api/wechat/* 写回 Notion。
+// 网页上能改标题、改公众号（单篇或整个号改名）、改分类（「分类」单选，内容视图用）、删除文章，经 /api/wechat/* 写回 Notion。
 // 只有一页文章，不分「博主、内容」；侧栏的公众号像抖音的分类。view 是入口，acct 是侧栏选中的公众号，catSort 是公众号的排法
 const W = {ALL: "全部收藏", NEW: "近期收藏"};
-state.w = {view: W.ALL, acct: null, catSort: store.get("wcatSort", "count"), by: store.get("wby", "acct") === "topic" ? "topic" : "acct", cat: null};
+// 公众号、内容两个视图不记上次的选择，每次进微信都从公众号开始；以前记在本机的 wby 顺手清掉
+store.set("wby", null);
+state.w = {view: W.ALL, acct: null, catSort: store.get("wcatSort", "count"), by: "acct", cat: null};
 let wdata = null, lastWText = "";
 const isWx = () => state.plat === "wechat";
+// 豆瓣：只有一个库「豆瓣读书」，一页书架；数据在 douban/videos.json（短键名见 scripts/sync-douban.mjs）。
+// 没有标记日期、状态、评分，页面上也不出这三样。卡片上能标星、标记取消与恢复，经 /api/douban/* 写回 Notion，别的列不在网页上改。
+// 侧栏四个入口同内容页：全部图书、星标、近期新增、近期取消；下面的组按页头选的分组方式换：出版社、分类或专题（同微信的「公众号、内容」）。
+// 分类是 30 个题材大类加按语种分的类（英文、法文、日文），专题是更细的主题，一本书可以在几个分类、几个专题里，没有专题的书不进任何专题组。
+// view 是入口，cat 是侧栏选中的组，by 是分组方式，catSort 是组的排法，arrange 是书的排法
+const B = {ALL: "全部图书", STAR: "星标", NEW: "近期新增", RECENT: "近期取消"};
+const B_GROUPS = {pub: "出版社", genre: "分类", topic: "专题"};
+// 影视：Notion「豆瓣影视」库，数据在 douban/movies.json，条目短键名同书（导演 dr、主演 ac、地区 rg 换掉作者、译者、出版社）。
+// 页头「读书」「影视」两个页签，影视页 /douban/movie 照书架做，影片详情 /douban/movie/<豆瓣编号> 照书的详情页做。
+// 两边共用一套代码，按当前页签从 SHELF 取接口文件、文案与网址；各页签的数据、入口、分组、排法各记各的，「从 Notion 同步」仍作用于整个豆瓣。
+// 入口的键两边都用 B 里的值（地址里写的就是它），只有「全部」那一格按页签显示成全部图书或全部影视
+const SHELF = {
+  book: {kind: "book", path: "/douban", item: "/douban/book", file: "videos", dir: "douban", all: B.ALL, groups: B_GROUPS, defBy: "pub", home: (d) => d.p,
+    unit: "本", noun: "书", place: "书架", pal: "读书文学", keys: {catSort: "bcatSort", arrange: "barrange"},
+    arranges: [["added", "默认", "最近加入的在前"], ["year", "出版年份", "从新到旧，按年代分组"], ["title", "书名", "按拼音从 A 到 Z"]], arrangeHead: "图书排序", yearless: "出版年份不详",
+    hint: "搜索书名、作者、译者或出版社", searchWhy: "换个关键词试试，书名、作者、译者和出版社都会搜到。", starWhy: "在卡片作者那一行点星标，书就会出现在这里。",
+    empty: `<div class="state"><h2>还没有豆瓣的数据</h2><p>点侧栏的「从 Notion 同步」，把 Notion「豆瓣读书」里的书读进来。</p></div>`,
+    missing: `<div class="state"><h2>书架上没有这本书</h2><p>可能已经从 Notion 里删掉了，点侧栏回到书架。</p></div>`,
+    notePrompt: "这本书，你怎么看？", noteHint: "读完有什么想法，用一两句话记下来。", starText: "星标这本书", picture: "封面"},
+  movie: {kind: "movie", path: "/douban/movie", item: "/douban/movie", file: "movies", dir: "douban-movie", all: "全部影视", groups: {dir: "导演", genre: "分类", topic: "专题"}, defBy: "dir", home: (d) => d.dr[0],
+    unit: "部", noun: "影片", place: "影视", pal: "影视娱乐", keys: {catSort: "mcatSort", arrange: "marrange"},
+    arranges: [["added", "默认", "最近加入的在前"], ["year", "上映年份", "从新到旧，按年代分组"], ["title", "片名", "按拼音从 A 到 Z"]], arrangeHead: "影视排序", yearless: "年份不详",
+    hint: "搜索片名、导演、主演或地区", searchWhy: "换个关键词试试，片名、导演、主演和地区都会搜到。", starWhy: "在卡片导演那一行点星标，影片就会出现在这里。",
+    empty: `<div class="state"><h2>还没有影视的数据</h2><p>在 Notion「豆瓣影视」里加影片后，点侧栏的「从 Notion 同步」，把影片读进来。</p></div>`,
+    missing: `<div class="state"><h2>影视里没有这部影片</h2><p>可能已经从 Notion 里删掉了，点侧栏回到影视。</p></div>`,
+    notePrompt: "这部影片，你怎么看？", noteHint: "看完有什么想法，用一两句话记下来。", starText: "星标这部影片", picture: "海报"},
+};
+const shelf = (kind = state.bkind) => SHELF[kind];
+const bByOf = (by) => Object.hasOwn(shelf().groups, by ?? "") ? by : null;
+const bViewOf = (v) => Object.values(B).includes(v) ? v : null;
+// 入口的显示名：「全部」那一格按页签叫
+const bViewName = (v) => v === B.ALL ? shelf().all : v;
+// 分组方式不记上次的选择，每次进豆瓣都从出版社（影视是导演）开始（同微信）；以前记在本机的 bby 顺手清掉
+store.set("bby", null);
+const bStateOf = (sh) => ({view: B.ALL, by: sh.defBy, cat: null, book: null, catSort: store.get(sh.keys.catSort, "count") === "name" ? "name" : "count", arrange: store.get(sh.keys.arrange, "added")});
+// bkind 是当前页签；state.b 总指向当前页签的那一份，书架原有的代码照旧读写 state.b
+state.bkind = "book";
+state.bs = {book: bStateOf(SHELF.book), movie: bStateOf(SHELF.movie)};
+Object.defineProperty(state, "b", {get: () => state.bs[state.bkind]});
+// 两个页签的数据各存一份（data 是整理好的数据，text 是读到的原文，静默刷新时比对）；bdata 总是当前页签的那份
+const bshelf = {book: {data: null, text: ""}, movie: {data: null, text: ""}};
+let bdata = null;
+const isDouban = () => state.plat === "douban";
+// 豆瓣的本机记录：页面 ID → 网页上改过、还没同步进 videos.json 的字段（st 星标、x 已取消、d 取消时刻）和改动时间，规则同关注页
+const bpending = new Map(Object.entries(store.get("bpending", {})));
+const saveBPending = () => store.set("bpending", Object.fromEntries(bpending));
 // 视频页的本机记录：页面 ID（某一边的记录）→ 网页上改过、还没同步进 videos.json 的字段和改动时间，规则同关注页
 const vpending = new Map(Object.entries(store.get("vpending", {})));
 const saveVPending = () => store.set("vpending", Object.fromEntries(vpending));
-// 网页上新建、还没同步进 videos.json 的收藏夹：名字和建的时间
-let vfolderPending = store.get("vfolders", []);
-const curView = () => isWx() ? (state.w.by === "topic" ? state.w.cat : state.w.acct) ?? state.w.view : state.mode === "videos" ? state.v.view : state.view;
+const curView = () => isDouban() ? state.b.cat ?? state.b.view : isWx() ? (state.w.by === "topic" ? state.w.cat : state.w.acct) ?? state.w.view : state.mode === "videos" ? state.v.view : state.view;
 // 本机记录：页面 ID → 网页上改过、还没同步进数据文件 的字段（s 星标、c 分类、x 已取关、d 取关日期、j 关注日期）和改动时间
 const pending = new Map(Object.entries(store.get("pending", {})));
 // 旧版本只记星标
@@ -528,7 +777,7 @@ function card(d) {
   return `<div class="card${d.x ? " gone" : ""}" data-id="${d.id}" style="${palVars(d.c || "内容不明")}">
   <div class="av">${d.a ? img(d.a) : `<div class="ph">${esc([...d.n][0])}</div>`}</div>
   <div class="meta"><div class="top"><a class="name hit" href="${esc(d.u || "#")}" target="_blank" rel="noopener">${esc(d.n)}</a><span class="fans num">${fans(d.f)}</span>${starBtn(d)}${moreBtn(d)}</div>
-  ${note}<div class="bio">${esc(d.b)}</div>${d.c ? `<span class="k">${esc(d.c)}</span>` : ""}</div></div>`;
+  ${note}<div class="bio">${esc(d.b)}</div>${d.c ? `<span class="k">${esc(d.c)}${d.sc ? `<em> · ${esc(d.sc)}</em>` : ""}</span>` : ""}</div></div>`;
 }
 
 function show(html) { $("list").innerHTML = html; }
@@ -584,8 +833,9 @@ const API_ERRORS = {
   "not a follows row": "这个账号已经不在 Notion 的数据库里了",
   "not a video row": "这个视频已经不在 Notion 的数据库里了",
   "not an article row": "这篇文章已经不在 Notion 的公众号库里了",
-  "folders changed, sync from Notion first": "Notion 里的收藏夹已经变了，请先点「从 Notion 同步」",
-  "folder exists": "已经有同名的收藏夹",
+  "not a book row": "这本书已经不在 Notion 的豆瓣读书库里了",
+  "not a douban row": "这一条已经不在 Notion 的豆瓣读书或豆瓣影视库里了",
+  "note too long": "短评超过 350 字了",
   "bad date": "日期不对，请检查电脑的日期",
   "forbidden": "请求来源不对，请在本站页面上操作",
 };
@@ -614,7 +864,7 @@ function inView(d) {
     case NEW: return !d.x && d.j >= data.cutoff;
     case STAR: return !d.x && d.s;
     case ALL: return !d.x;
-    default: return !d.x && d.c === state.view;
+    default: return !d.x && d.c === state.view && (!state.sub || d.sc === state.sub);
   }
 }
 function markCurrent() {
@@ -622,7 +872,7 @@ function markCurrent() {
   document.querySelectorAll("[data-v]").forEach((b) => b.setAttribute("aria-current", String(!searching && b.dataset.v === curView())));
 }
 
-// ===== 日历：月份柱子加当月日历 =====
+// ===== 日历 =====
 // 页头「日历」按钮展开列表上方的两张卡片：左边一年 12 个月的柱子（可切换年份），右边选中月份的日历，有记录的日子按条数分四档深浅。
 // 点柱子换月份并把列表筛到这个月，点某一天筛到这一天，再点那天回到整月；点「清除」或收起日历就不再按日期筛。
 // 日期：内容页按发布时间，微信按收藏时间，博主页按关注日期（只有抖音的博主有）；当前页一条日期都没有时不出按钮。
@@ -666,8 +916,10 @@ function renderCal(base) {
     const last = keys.reduce((a, k) => (k[0] * 400 + k[1] * 32 + k[2] > a[0] * 400 + a[1] * 32 + a[2] ? k : a));
     state.cal.y = last[0]; state.cal.m = last[1];
   }
-  // 有记录的年份，切年份时在这里面挑相邻的一年（年份可能不连续）
+  // 有记录的年份，切年份时在这里面挑相邻的一年（年份可能不连续）；每年第一个有记录的月份，切过去时就看并筛这个月
   state.cal.years = years;
+  state.cal.firstMonth = {};
+  for (const k of keys) state.cal.firstMonth[k[0]] = Math.min(state.cal.firstMonth[k[0]] ?? 12, k[1]);
   const y = state.cal.y, f = state.cal.f;
   const months = Array(12).fill(0), days = Array(32).fill(0);
   for (const k of keys) if (k[0] === y) months[k[1]]++;
@@ -697,7 +949,12 @@ function renderCal(base) {
 const calReset = () => { state.cal.f = null; state.cal.y = null; state.cal.m = null; };
 function calSet(patch) { Object.assign(state.cal, patch); keepTop(); render(); remember(); }
 function render() {
+  // 子分类标签条只在博主页出现，换到别的页时也要收起，所以放在各页分流之前
+  renderSubbar();
   $("wby").hidden = !isWx();
+  $("bby").hidden = !isDouban() || Boolean(state.b.book);
+  $("btabs").hidden = $("bby").hidden;
+  if (isDouban()) return renderB();
   if (isWx()) return renderW();
   if (state.mode === "videos") return renderV();
   queue = []; done = 0;
@@ -725,7 +982,7 @@ function render() {
   } else if (arrangeOf() === "name") {
     queue.push(...pool.sort((a, b) => byName(a.n, b.n)));
   } else if (arrangeOf() === "follow") {
-    // 按关注日期从近到远，同一时刻再按 Notion「关注顺序」从新到旧。关注日期是导入时填的，
+    // 按关注日期从近到远，同一时刻再按 Notion「关注顺序」从新到旧。关注日期可按抖音「最近关注」每页的时间游标补齐，
     // 网页上恢复关注、重抓新增的记当时的时刻；没有日期的（已取关、不在抖音名单里）排最后，保持数据文件里粉丝数从多到少的顺序
     queue.push(...pool.sort((a, b) => (Date.parse(b.j) || 0) - (Date.parse(a.j) || 0) || (b.o ?? 0) - (a.o ?? 0)));
   } else {
@@ -742,7 +999,8 @@ function more() {
   while (done < queue.length && taken < CHUNK) {
     const it = queue[done++];
     if (it.band) { if (grid) { html += "</div>"; grid = false; } html += `<div class="band"><h2>${esc(it.band)}</h2><span class="n num">${it.n.toLocaleString()}</span><hr></div>`; }
-    else { if (!grid) { html += it.v ? `<div class="grid vgrid">` : it.wt ? `<div class="grid wgrid">` : `<div class="grid">`; grid = true; } html += it.v ? vcard(it) : it.wt ? wcard(it) : card(it); taken++; }
+    // 豆瓣的书也带 v（条目编号），先认 bk
+    else { if (!grid) { html += it.bk ? `<div class="grid shelf">` : it.v ? `<div class="grid vgrid">` : it.wt ? `<div class="grid wgrid">` : `<div class="grid">`; grid = true; } html += it.bk ? bcard(it) : it.v ? vcard(it) : it.wt ? wcard(it) : card(it); taken++; }
   }
   if (grid) html += "</div>";
   // 接续上一块时，新卡片并进最后一个网格，而不是另起一个
@@ -755,12 +1013,14 @@ function more() {
 // ===== 视频页 =====
 const HEART = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.6s-8-4.7-8-10.6A4.6 4.6 0 0 1 12 7.1a4.6 4.6 0 0 1 8 2.9c0 5.9-8 10.6-8 10.6Z"/></svg>`;
 const MARK = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3.5h12v17.2l-6-4.1-6 4.1Z"/></svg>`;
+const HEART_O = HEART.replace('fill="currentColor"', 'fill="none" stroke="currentColor" stroke-width="2"');
+const MARK_O = MARK.replace('fill="currentColor"', 'fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"');
 const PIN_ICON = {
   [V.ALL]: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="m10 9.2 5 2.8-5 2.8Z" fill="currentColor"/></svg>`,
   [V.NEW]: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>`,
   [V.RECENT]: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/></svg>`,
 };
-// 视频分类的线条图标，24×24、描边，手绘成同一套笔画；名单之外的分类用标签图标，收藏夹用文件夹图标
+// 视频分类的线条图标，24×24、描边，手绘成同一套笔画；名单之外的分类用标签图标
 const CAT_ICON = {
   "人工智能": '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1-5.1-1.9 5.1-1.9Z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8Z"/>',
   "编程开发": '<path d="m8.5 7.5-4.5 4.5 4.5 4.5"/><path d="m15.5 7.5 4.5 4.5-4.5 4.5"/><path d="m13.5 5-3 14"/>',
@@ -796,8 +1056,7 @@ const CAT_ICON = {
   "内容不明": '<circle cx="12" cy="12" r="8.5" stroke-dasharray="3 2.6"/><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor"/>',
 };
 const OTHER_ICON = '<path d="M3.5 12.5V5c0-.8.7-1.5 1.5-1.5h7.5l8 8-9 9Z"/><circle cx="8" cy="8" r="1.4"/>';
-const FOLDER_ICON = '<path d="M3.5 7c0-.8.7-1.5 1.5-1.5h4.5l2 2.5H19c.8 0 1.5.7 1.5 1.5V18c0 .8-.7 1.5-1.5 1.5H5c-.8 0-1.5-.7-1.5-1.5Z"/>';
-// 公众号文章按内容分的 20 类（另拟的一套，和视频分类不混用）
+// 公众号文章按内容分的 20 类
 Object.assign(CAT_ICON, {
   "西方哲学": CAT_ICON["哲学思想"], "法律法学": CAT_ICON["法律常识"], "经济研究": CAT_ICON["财经投资"], "商业科技": CAT_ICON["数码硬件"],
   "中国历史": CAT_ICON["历史人文"], "文学评论": CAT_ICON["读书文学"], "艺术影视": CAT_ICON["影视娱乐"], "人间故事": CAT_ICON["人生感悟"],
@@ -812,8 +1071,21 @@ Object.assign(CAT_ICON, {
   "教育学术": '<path d="m3 9.5 9-4.5 9 4.5-9 4.5Z"/><path d="M7 11.5v4.5c1.5 1.4 3 2 5 2s3.5-.6 5-2v-4.5"/><path d="M21 9.5v5"/>',
   "活动通知": '<path d="M4 10v4h3l7 4V6l-7 4Z"/><path d="M17.5 9.5a3.5 3.5 0 0 1 0 5"/>',
 });
+// 豆瓣图书的 30 个题材类借用意思相近的图标，没有相近的另画三个；「文学评论」和公众号同名，沿用上面那个，「运动健身」借健身的
+Object.assign(CAT_ICON, {
+  "历史": CAT_ICON["历史人文"], "心理学": CAT_ICON["心理成长"], "经济学": CAT_ICON["财经投资"], "哲学": CAT_ICON["哲学思想"], "外国文学": CAT_ICON["读书文学"],
+  "政治学": CAT_ICON["政治理论"], "社会学": CAT_ICON["社会研究"], "语言学": CAT_ICON["语言学习"], "医学": CAT_ICON["健康医疗"], "传记": CAT_ICON["学人往事"],
+  "运动健身": CAT_ICON["健身康复"], "个人成长": CAT_ICON["人生感悟"], "宗教": CAT_ICON["宗教信仰"], "金融": CAT_ICON["财经投资"], "科普": CAT_ICON["科学科普"],
+  "英语学习": CAT_ICON["语言学习"], "自然科学": CAT_ICON["旅行风光"], "法律": CAT_ICON["法律常识"], "中国文学": CAT_ICON["中国思想"], "商业": CAT_ICON["职场求职"],
+  "人类学": CAT_ICON["社会研究"], "计算机": CAT_ICON["编程开发"], "教育": CAT_ICON["教育学术"], "旅行": CAT_ICON["异国见闻"], "写作": CAT_ICON["文学作品"], "生活": CAT_ICON["家居装修"],
+  "军事": '<path d="M12 3.5 19.5 6v5.5c0 4.4-3.1 7.7-7.5 9-4.4-1.3-7.5-4.6-7.5-9V6Z"/><path d="M12 8.5v7M8.5 12h7"/>',
+  "数学": '<path d="M17.5 5H6.5l6 7-6 7h11"/>',
+  "艺术": '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.9 1.4-1.9-.5-1.3.3-2.3 1.7-2.3h1.9c1.9 0 3.5-1.5 3.5-3.4 0-5.4-3.8-9.4-8.5-9.4Z"/><circle cx="8" cy="11" r="1.1"/><circle cx="11" cy="7.5" r="1.1"/><circle cx="15.5" cy="8.5" r="1.1"/>',
+});
+// 豆瓣分类里另有按语种分的类（非中文的书，一个语种一类），共用一个「文 A」图标，和题材类一眼分开；配色按名字自动取
+const LANG_ICON = '<path d="M3.5 5.5h9M8 3.5v2M5.5 5.5c.7 3 2.7 5.4 5.5 6.8"/><path d="M10.5 5.5c-.8 3.5-3 6.2-6.5 7.8"/><path d="m12.5 20.5 4-9 4 9M14 17.5h5"/>';
+for (const lang of ["英文", "法文", "日文"]) CAT_ICON[lang] = LANG_ICON;
 const svgIcon = (paths, size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
-PIN_ICON[V.FOLDERS] = svgIcon(FOLDER_ICON);
 const FOLLOW_PIN_ICON = {
   [ALL]: svgIcon('<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
   [STAR]: svgIcon('<path d="m12 3.2 2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9Z"/>'),
@@ -844,7 +1116,10 @@ const FOLLOW_PAL = {"出海华人": "异国见闻", "外籍博主": "异国见�
   // 公众号文章的 20 类借用意思相近的视频分类配色；「宗教信仰」和 X 博主同名，沿用上面那一组
   "西方哲学": "哲学思想", "中国思想": "人生感悟", "政治理论": "时事国际", "法律法学": "法律常识", "社会研究": "健康医疗",
   "经济研究": "财经投资", "商业科技": "数码硬件", "中国历史": "历史人文", "世界历史": "旅行风光", "文学评论": "语言学习", "文学作品": "音乐欣赏",
-  "读书出版": "读书文学", "学人往事": "职场求职", "教育学术": "育儿教育", "艺术影视": "影视娱乐", "人间故事": "美食烹饪", "活动通知": "内容不明"};
+  "读书出版": "读书文学", "学人往事": "职场求职", "教育学术": "育儿教育", "艺术影视": "影视娱乐", "人间故事": "美食烹饪", "活动通知": "内容不明",
+  // 豆瓣图书的题材类（演示数据用的这几类）各借一组意思相近的配色；没列出的按名字算一个色相
+  "外国文学": "异国见闻", "中国文学": "读书文学", "历史": "历史人文", "哲学": "哲学思想", "心理学": "心理成长",
+  "经济学": "财经投资", "科普": "科学科普", "艺术": "影视娱乐", "设计": "设计摄影", "随笔": "人生感悟"};
 const pal = (c) => PAL[c] ?? (() => { const h = hueOf(c); return [`hsl(${h} 30% 88%)`, `hsl(${h} 45% 38%)`, `hsl(${h} 35% 14%)`]; })();
 const palVars = (c) => { const [bg, ac, ink] = pal(FOLLOW_PAL[c] ?? c); return `--bg:${bg};--ac:${ac};--ink:${ink}`; };
 // 几何图形：每个分类固定一种，压在卡片右上角，像丛书封面上的图案
@@ -858,156 +1133,111 @@ const SHAPES = [
   (w, h) => `<path d="M${w * .3} 0 L${w} 0 L${w} ${h * .45} Z" fill="currentColor" opacity=".8"/>`,
   (w, h) => `<circle cx="${w * .72}" cy="${h * .16}" r="${w * .2}" fill="none" stroke="currentColor" stroke-width="10" opacity=".75"/><circle cx="${w * .95}" cy="${h * .02}" r="${w * .12}" fill="currentColor" opacity=".6"/>`,
 ];
-const motif = (c, w = 212, h = 283) => `<svg class="mo" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMaxYMin slice" aria-hidden="true">${SHAPES[(hueOf(c) * 7 + c.length) % SHAPES.length](w, h)}</svg>`;
+// pick 是另指定的图形序号（豆瓣的书封按书名挑），不写就按分类挑
+const motif = (c, w = 212, h = 283, pick) => `<svg class="mo" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMaxYMin slice" aria-hidden="true">${SHAPES[(pick ?? (hueOf(c) * 7 + c.length)) % SHAPES.length](w, h)}</svg>`;
 // 分类色相：配色表之外的分类按它取色，几何图形也按它挑
 const CAT_HUE = {"人工智能": 255, "编程开发": 222, "数码硬件": 200, "心理成长": 150, "人生感悟": 28, "哲学思想": 275, "历史人文": 22, "时事国际": 207,
   "财经投资": 140, "科学科普": 186, "语言学习": 300, "读书文学": 12, "职场求职": 232, "法律常识": 246, "健康医疗": 162, "健身康复": 96, "美食烹饪": 36,
   "音乐欣赏": 325, "影视娱乐": 345, "设计摄影": 286, "穿搭美妆": 332, "颜值写真": 356, "幽默搞笑": 46, "异国见闻": 192, "旅行风光": 172, "家居装修": 40,
   "好物种草": 18, "体育赛事": 112, "汽车出行": 212, "育儿教育": 58, "眼镜验配": 238};
 const hueOf = (name) => CAT_HUE[name] ?? [...name].reduce((h, c) => (h * 31 + c.codePointAt(0)) % 360, 7);
-// 收藏夹按名字配图标与颜色，认不出的用文件夹
-const FOLDER_ART = [[/音乐|歌|曲/, "音乐欣赏"], [/剁手|购|买|好物|种草/, "好物种草"], [/运动|健身|锻炼|跑/, "健身康复"], [/吃|食|菜|饭/, "美食烹饪"], [/书|读/, "读书文学"], [/旅|游/, "旅行风光"]];
-const folderArt = (name) => { const hit = FOLDER_ART.find(([re]) => re.test(name)); return hit ? {paths: CAT_ICON[hit[1]], key: hit[1]} : {paths: FOLDER_ICON, key: name}; };
-// 视频没有头像可拼，侧栏分类用分类底色加线条图标作封面（手绘图标，不用汉字）
+// 视频没有头像可拼，侧栏分类用分类底色加线条图标作封面
 const tile = (c) => `<span class="tile" style="${palVars(c)}" aria-hidden="true">${svgIcon(CAT_ICON[c] ?? OTHER_ICON, 17)}</span>`;
 // 卡片上的文案去掉话题标签；只有话题标签的保留原文
 const caption = (d) => esc((d.t ?? "").replace(/#[^\s#]+/g, "").replace(/\s+/g, " ").trim() || d.t || "（无文案）");
 // 当前看的是哪个库：页头「收藏、喜欢」标签切换
 const libsOf = (d) => [state.v.lib].filter((k) => d[k]);
+// 近期新增、近期取消：当前这个库里各取最近的 99 条，不限天数。新增按加入先后（抖音是添加顺序，X 与小红书是添加时间），
+// 取消按取消时刻；没有这两样记录的排不进来。结果按数据和本机改动的次数缓存，侧栏数字和列表共用
+const RECENT_N = 99;
+let vEdits = 0, recentCache = null;
+function recentIds(view) {
+  const lib = state.v.lib, key = `${view}|${lib}`;
+  if (recentCache?.data !== vdata || recentCache.edits !== vEdits) recentCache = {data: vdata, edits: vEdits, sets: {}};
+  if (!recentCache.sets[key]) {
+    const rank = view === V.RECENT ? (r) => r.d ?? "" : (r) => r.q || r.j || "";
+    const recs = vdata.items.filter((d) => d[lib] && (view === V.RECENT ? d[lib].x : !d[lib].x) && rank(d[lib]));
+    recs.sort((a, b) => rank(b[lib]).localeCompare(rank(a[lib])));
+    recentCache.sets[key] = new Set(recs.slice(0, RECENT_N).map((d) => d.v));
+  }
+  return recentCache.sets[key];
+}
 function vIn(d, view = state.v.view) {
   const ks = libsOf(d), live = ks.filter((k) => !d[k].x);
-  if (view === V.RECENT) return ks.some((k) => d[k].x && (d[k].d ?? "") >= vdata.cutoff);
-  if (view === V.NEW) return live.some((k) => (d[k].j ?? "") >= vdata.cutoff);
-  // 收藏夹入口：标了星或放进任一收藏夹的收藏；是星标列表时只看标没标星
-  if (view === V.FOLDERS) return starPage() ? live.length > 0 && starredOf(d) : live.includes("K") && inFolders(d);
+  if (view === V.RECENT || view === V.NEW) return recentIds(view).has(d.v);
+  // 第二格是星标列表
+  if (view === V.STAR) return live.length > 0 && starredOf(d);
   if (view === V.ALL) return live.length > 0;
   return live.some((k) => d[k].c === view);
 }
-// 星标与收藏夹记在 d.F 上：Notion「收藏夹」数据库里这个视频的那份复制（id 页面 ID，s 星标，f 所在的收藏夹）。
-// 视频放进收藏夹后照样出现在全部视频和分类里；收藏夹库是另外复制一份，不是把视频挪走
-const STARRED = "星标";
 const STAR_PATH = '<path d="m12 3.2 2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9Z"/>';
-const inFolders = (d) => Boolean(d.F && (d.F.s || (d.F.f ?? []).length));
-const inFolder = (d, name) => name === STARRED ? Boolean(d.F?.s) : (d.F?.f ?? []).includes(name);
 const when = (d, key) => Math.max(0, ...libsOf(d).map((k) => Date.parse(d[k][key] ?? "") || 0));
 const vdate = (iso) => { const t = new Date(iso), y = t.getFullYear(); return `${y === new Date().getFullYear() ? "" : y + "年"}${t.getMonth() + 1}月${t.getDate()}日`; };
 const dur = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 function vcard(d) {
   const lib = state.v.lib, rec = d[lib], c = rec.c || "内容不明", view = state.v.view;
-  // 同一视频也在另一个库里时，底栏点赞数前面标一下
-  const other = lib === "K" ? "L" : "K", also = d[other] && !d[other].x;
-  const icon = also ? `<span class="libic ${other}" title="也在${libName(other)}里">${other === "L" ? HEART : MARK}</span>` : "";
-  const tail = view === V.RECENT ? `<span class="when">${vdate(new Date(when(d, "d")))}取消</span>` : view === V.NEW ? `<span class="when new">${vdate(new Date(when(d, "j")))}加入</span>` : `<span class="num">${d.lk ? "♥ " + fans(d.lk) : ""}</span>`;
+  // 底栏右边是收藏、喜欢两个按钮：实心是在那个库里（没取消），空心是不在或已取消；点一下加入、再点一下取消
+  const libBtn = (k) => {
+    const inLib = Boolean(d[k] && !d[k].x), label = `${inLib ? "取消" : "加入"}${libName(k)}`;
+    return `<button class="libbtn ${k}" data-tog="${k}" data-v="${d.v}" aria-pressed="${inLib}" aria-label="${label}" title="${label}">${k === "L" ? (inLib ? HEART : HEART_O) : (inLib ? MARK : MARK_O)}</button>`;
+  };
+  // 底栏左边：平时是点赞数，近期两格换成加入、取消的日子
+  const lead = view === V.RECENT ? `<span class="when">${vdate(new Date(when(d, "d")))}取消</span>` : view === V.NEW && when(d, "j") ? `<span class="when new">${vdate(new Date(when(d, "j")))}加入</span>` : `<span class="num">${d.lk ? "♥ " + fans(d.lk) : ""}</span>`;
   const on = starredOf(d);
   const star = !rec.x ? `<button class="star" data-vid="${d.v}" aria-pressed="${on}" aria-label="${on ? "取消星标" : "标星"}">${STAR_ICON}</button>` : "";
   return `<div class="poster grain${rec.x ? " gone" : ""}" data-vid="${d.v}" style="${palVars(c)}">${motif(c, 212, 58)}
   <div class="pt"><span class="c">${svgIcon(CAT_ICON[c] ?? OTHER_ICON, 12)}${esc(c)}</span>${star}<button class="more" data-vid="${d.v}" aria-haspopup="menu" aria-expanded="false" aria-label="改分类、取消">${MORE_ICON}</button></div>
-  ${flatTime() && d.pt ? `<time class="pd" datetime="${esc(d.pt)}">${vdate(d.pt)}</time>` : ""}<p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${caption(d)}</a></p>
-  ${canEditText() && !rec.x ? `<button class="ed" data-ed="${d.v}" aria-label="编辑文字" title="编辑文字">${PEN_POSTER}</button>` : ""}<div class="m"><span class="au">${esc(d.a || "")}</span>${icon}${tail}</div></div>`;
+  ${d.pt ? `<time class="pd" datetime="${esc(d.pt)}">${vdate(d.pt)}</time>` : ""}<p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${caption(d)}</a></p>
+  ${canEditText() && !rec.x ? `<button class="ed" data-ed="${d.v}" aria-label="编辑文字" title="编辑文字">${PEN_POSTER}</button>` : ""}<div class="m">${lead}<span class="au">${esc(d.a || "")}</span><span class="libs">${libBtn("K")}${libBtn("L")}</span></div></div>`;
 }
-// 收藏夹第一级：第一张是「星标」，然后是各个收藏夹（没有视频的也列出来），最后是「新建收藏夹」
-function folderTiles() {
-  const live = vdata.items.filter((d) => vIn(d, V.FOLDERS));
-  const card = (name, key, paths, n, kind) => `<button class="folder grain" data-folder="${esc(name)}" style="${palVars(key)}">${motif(key, 300, 178)}<span class="ic">${svgIcon(paths, 22)}</span><span><b>${esc(name)}</b><i>${kind} · ${n.toLocaleString()} 个视频</i></span></button>`;
-  return `<div class="folders">${card(STARRED, "幽默搞笑", STAR_PATH, live.filter((d) => d.F.s).length, "标了星的")}${vdata.folders.map((f) => {
-    const art = folderArt(f);
-    return card(f, art.key, art.paths, live.filter((d) => inFolder(d, f)).length, "收藏夹");
-  }).join("")}<button class="folder new" data-new>${FOLDER_SHAPE}<span class="plus">${svgIcon('<path d="M12 5v14M5 12h14"/>', 18)}</span><b>新建收藏夹</b></button></div>`;
-}
-// 空文件夹的轮廓，随卡片拉伸，虚线粗细不变
-const FOLDER_SHAPE = `<svg class="shape" viewBox="0 0 300 178" preserveAspectRatio="none" aria-hidden="true"><path d="M22 1.5h76c6 0 9 3 12 7l7 9h161c11 0 20.5 9 20.5 20.5v118c0 11-9.5 20.5-20.5 20.5H22C11 176.5 1.5 167 1.5 156V22C1.5 11 11 1.5 22 1.5Z" fill="rgba(255,255,255,.35)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"/></svg>`;
-// 新建收藏夹：轮廓里就地换成输入框，回车建好，Esc 或留空离开就放弃
-function editNewFolder(btn) {
-  btn.outerHTML = `<div class="folder new editing">${FOLDER_SHAPE}<input id="newFolder" maxlength="20" placeholder="收藏夹名字" aria-label="新收藏夹的名字"><i>回车创建，Esc 取消，最长 20 个字</i></div>`;
-  const input = $("newFolder");
-  input.focus();
-  input.onkeydown = (e) => {
-    if (e.key === "Escape") { e.preventDefault(); render(); }
-    if (e.key !== "Enter" || e.isComposing) return;
-    e.preventDefault();
-    const name = input.value.trim();
-    // Notion 多选的选项名不能带英文逗号
-    const why = !name ? "名字不能为空" : name.includes(",") ? "名字里不能有英文逗号" : name === STARRED || vdata.folders.includes(name) ? "已经有同名的收藏夹" : "";
-    if (why) return toast(why);
-    createFolder(name);
-  };
-  input.onblur = () => { if (!input.value.trim()) setTimeout(render, 0); };
-}
-// 先在页面上出现，再写 Notion；写入失败就撤掉并提示。同步回来之前按本机记录显示
-function createFolder(name) {
-  vfolderPending.push({name, at: Date.now()}); store.set("vfolders", vfolderPending);
-  vdata.folders = [...vdata.folders, name];
-  render();
-  post("/video/folder/new", {platform: state.plat, name}).catch((err) => {
-    vfolderPending = vfolderPending.filter((p) => p.name !== name); store.set("vfolders", vfolderPending);
-    vdata.folders = vdata.folders.filter((f) => f !== name);
-    refresh(); toast(`收藏夹没有建好：${err.message}`);
-  });
-}
-// 收藏夹第二级列表上方的返回路径
-const crumb = (back, name, n, unit = "个") => `<div class="crumb"><button data-back>${esc(back)}</button>›<b>${esc(name)}</b><span class="num">${n.toLocaleString()} ${unit}</span></div>`;
 function renderV() {
   if (!vdata) return show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
-  // 是星标列表时没有第二级的收藏夹
-  if (starPage()) state.v.folder = null;
-  const searching = Boolean(state.q), view = state.v.view, folder = view === V.FOLDERS && !searching ? state.v.folder : null;
+  const searching = Boolean(state.q), view = state.v.view;
   // 先清空滚动加载的队列：下面几种情况直接换掉整个列表，旧队列留着会被滚动接着追加进来
   queue = []; done = 0;
   buildTabs();
   // 搜索在当前库的全部视频里找，与停在哪个分类无关
-  const base = vdata.items.filter((d) => searching ? vIn(d, V.ALL) && d.text.includes(state.q) : folder ? vIn(d) && inFolder(d, folder) : vIn(d)), pool = calApply(base);
-  const dated = !searching && (view === V.NEW || view === V.RECENT);
-  const tiles = !searching && view === V.FOLDERS && !folder && !starPage();
-  $("arrange").hidden = dated || tiles;
+  const base = vdata.items.filter((d) => searching ? vIn(d, V.ALL) && d.text.includes(state.q) : vIn(d)), pool = calApply(base);
+  // 近期新增固定按加入先后、近期取消固定按取消时刻，最近的在前，这两格不出排序菜单
+  const recentView = !searching && (view === V.NEW || view === V.RECENT);
+  $("arrange").hidden = recentView;
   markCurrent();
-  // 收藏夹第一级是收藏夹格子，不出日历
-  renderCal(tiles ? [] : base);
-  if (!tiles && calEmpty(base, pool)) return;
-  // 收藏里总是列出收藏夹，哪怕都还空着，好在这里新建
-  if (tiles) return show(folderTiles());
+  renderCal(base);
+  if (calEmpty(base, pool)) return;
   if (!pool.length) {
     const nn = noun(), kn = libName("K"), ln = libName("L");
     const why = searching ? (isX() ? "换个关键词试试，正文和作者都会搜到。" : isRed() ? "换个关键词试试，标题、正文、作者和话题都会搜到。" : "换个关键词试试，文案、作者和话题都会搜到。")
-      : {[V.RECENT]: `最近 30 天没有取消${ln}或${kn}的${nn}。`, [V.NEW]: `最近 30 天没有新${ln}或新${kn}的${nn}。`, [V.FOLDERS]: starPage() ? `在卡片右上角点星标，${nn}就会出现在这里。` : "还没有放进收藏夹的视频。"}[view] ?? (state.v.lib === "L" && !vdata.items.some((d) => d.L) ? `${ln}还没有导入。` : `这里还没有${nn}。`);
+      : {[V.RECENT]: `${libName(state.v.lib)}里还没有取消的${nn}。`, [V.NEW]: hasAddOrder() || vdata.items.some((d) => d[state.v.lib]?.j) ? `${libName(state.v.lib)}里还没有${nn}。` : `${libName(state.v.lib)}没有记下加入的先后，排不出近期新增。`, [V.STAR]: `在卡片右上角点星标，${nn}就会出现在这里。`}[view] ?? (state.v.lib === "L" && !vdata.items.some((d) => d.L) ? `${ln}还没有导入。` : `这里还没有${nn}。`);
     return show(`<div class="state"><h2>${searching ? `没有匹配的${nn}` : "这里还是空的"}</h2><p>${why}</p></div>`);
   }
-  const head = folder ? crumb(V.FOLDERS, folder, pool.length) : "";
-  if (folder) {
-    // 一个收藏夹里视频不多，不分组，按当前排序直接排
-    queue.push(...pool.sort(state.v.arrange === "likes" ? (a, b) => (b.lk ?? 0) - (a.lk ?? 0) : (a, b) => (b.pt ?? "").localeCompare(a.pt ?? "")));
-  } else if (dated) {
-    const key = view === V.RECENT ? "d" : "j";
-    queue.push({band: `30 天内，按${view === V.RECENT ? "取消" : "加入"}时间从近到远`, n: pool.length}, ...pool.sort((a, b) => when(b, key) - when(a, key)));
-  } else if (state.v.arrange === "likes") {
+  if (recentView) {
+    const lib = state.v.lib, rank = view === V.RECENT ? (d) => d[lib].d ?? "" : (d) => d[lib].q || d[lib].j || "";
+    queue.push(...pool.sort((a, b) => rank(b).localeCompare(rank(a))));
+  } else if (vArrange() === "likes") {
     pool.sort((a, b) => (b.lk ?? 0) - (a.lk ?? 0));
     LIKE_BANDS.forEach(([name, min], i) => {
       const max = i ? LIKE_BANDS[i - 1][1] : Infinity;
       const g = pool.filter((d) => (d.lk ?? 0) >= min && (d.lk ?? 0) < max);
       if (g.length) queue.push({band: name, n: g.length}, ...g);
     });
+  } else if (vArrange() === "added") {
+    // 加入先后：批次新的在前，同一批次里编号大的在前
+    queue.push(...pool.sort((a, b) => qOf(b).localeCompare(qOf(a))));
   } else {
-    // 发布时间从新到旧，按月分组；小红书和 X 不分组，日期在卡片上
+    // 发布时间从新到旧，不分组，日期写在卡片上；按月查看用日历
     pool.sort((a, b) => (b.pt ?? "").localeCompare(a.pt ?? ""));
-    if (flatTime()) { queue.push(...pool); show(head); done = 0; return more(); }
-    let month = null, group = [];
-    const flush = () => { if (group.length) queue.push({band: month, n: group.length}, ...group); };
-    for (const d of pool) {
-      const t = new Date(d.pt ?? 0), m = `${t.getFullYear()} 年 ${t.getMonth() + 1} 月`;
-      if (m !== month) { flush(); month = m; group = []; }
-      group.push(d);
-    }
-    flush();
+    queue.push(...pool);
   }
-  show(head); done = 0; more();
+  show(""); done = 0; more();
 }
-// 侧栏四个入口，两页同一个样子；配色按位置固定：全部靛蓝、特别关注与收藏夹琥珀、新增绿、取消红
+// 侧栏四个入口，两页同一个样子；配色按位置固定：全部靛蓝、特别关注与星标琥珀、新增绿、取消红
 const PIN_PAL = ["人工智能", "幽默搞笑", "健康医疗", "历史人文"];
 const pinBtn = (v, icon, n, i) => `<button class="pin grain" data-v="${v}" style="${palVars(PIN_PAL[i])}">${motif(PIN_PAL[i], 120, 100)}<span class="ico">${icon}</span><span class="ft"><span class="lab">${vLabel(v)}</span><span class="big num">${n.toLocaleString()}</span></span></button>`;
 function renderSideV() {
   if (!vdata) return;
   const count = (view) => vdata.items.filter((d) => vIn(d, view)).length;
   // 第二格是星标列表时换成星标图标
-  $("pins").innerHTML = [V.ALL, V.FOLDERS, V.NEW, V.RECENT].map((v, i) => pinBtn(v, v === V.FOLDERS && starPage() ? svgIcon(STAR_PATH) : PIN_ICON[v], count(v), i)).join("");
+  $("pins").innerHTML = [V.ALL, V.STAR, V.NEW, V.RECENT].map((v, i) => pinBtn(v, v === V.STAR ? svgIcon(STAR_PATH) : PIN_ICON[v], count(v), i)).join("");
   const counts = Object.fromEntries(vdata.categories.map((c) => [c, count(c)]));
   const order = state.v.catSort === "name" ? [...vdata.categories].sort(byName) : [...vdata.categories].sort((a, b) => counts[b] - counts[a]);
   $("cats").innerHTML = order.filter((c) => counts[c]).map((c) => `<button class="cat" data-v="${esc(c)}">${tile(c)}<span class="tx" title="${counts[c].toLocaleString()} 个${noun()}"><b>${esc(c)}</b><span class="num">${counts[c].toLocaleString()}</span></span></button>`).join("");
@@ -1017,21 +1247,27 @@ function renderSideV() {
 // 侧栏顶部的平台切换，博主、内容两页共用；没有「全部平台」，总是停在某一个平台上
 function buildPlats() {
   $("plats").innerHTML = PLATFORM_LIST.map(([slug, label]) => `<button class="plat" aria-pressed="${state.plat === slug}" data-p="${slug}" ${ENABLED.has(slug) ? "" : "disabled"}>${esc(label)}</button>`).join("");
-  // 微信只有一页、小红书只有内容页，不出「博主、内容」切换
+  // 微信、豆瓣各只有一页，不出「博主、内容」切换
   $("mode").hidden = !hasCreators();
 }
 // 换平台：每个平台各一份数据，清掉当前的重新读。还在路上的旧平台数据，到了也不用（load、loadV 里按平台核对）
 function resetPlatData() {
   store.set("plat", state.plat);
   calReset();
-  data = null; vdata = null; vLoading = null; lastText = ""; lastVText = ""; wdata = null; lastWText = "";
+  data = null; vdata = null; vLoading = null; lastText = ""; lastVText = ""; wdata = null; lastWText = ""; bdata = null;
+  for (const s of Object.values(bshelf)) { s.data = null; s.text = ""; }
   byId = new Map(); vById = new Map();
   buildPlats();
   $("pins").innerHTML = ""; $("cats").innerHTML = "";
 }
 // 先按新平台换好两页的叫法、排序菜单（setMode 里抖音的内容页会顺带读视频数据），再读数据
 function switchPlat(slug) {
-  state.plat = slug; resetPlatData();
+  state.plat = slug; state.sub = null; resetPlatData();
+  // 从侧栏切进微信、豆瓣时也回到默认的视图与分组，不沿用这次打开页面后切过的
+  state.w.by = "acct"; state.w.acct = null; state.w.cat = null;
+  // 豆瓣从读书页签进
+  state.bkind = "book";
+  for (const [k, s] of Object.entries(state.bs)) Object.assign(s, {by: SHELF[k].defBy, cat: null, book: null});
   setMode(store.get("mode", "follows"));
   load(false);
 }
@@ -1045,7 +1281,6 @@ function buildTabs() {
     `<button role="tab" aria-selected="${state.v.lib === k}" data-lib="${k}">${TAB_ICON[k]}${name}<em class="num">${n(k).toLocaleString()}</em></button>`).join("");
 }
 function applyV(raw) {
-  const cutoff = new Date(Date.now() - RECENT_DAYS * 864e5).toISOString().slice(0, 10);
   const items = raw.items.map((x) => ({...x, text: `${x.t ?? ""} ${x.a ?? ""} ${x.g ?? ""}`.toLowerCase()}));
   // 本机记录盖在快照上，丢掉的条件同关注页
   const readAt = raw.updated ? Date.parse(raw.updated) : 0;
@@ -1056,15 +1291,12 @@ function applyV(raw) {
     if (fields.every((f) => (rec[f] ?? "") === p[f]) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) vpending.delete(rec.id);
     else Object.assign(rec, Object.fromEntries(fields.map((f) => [f, p[f]])));
   }
-  // 星标与收藏夹的本机记录按视频 ID 记，第一次标星时收藏夹库里还没有那份复制
+  // 网页上互加新建、还没同步回来的那一边，按本机记录补上，规则同上
   for (const d of items) {
-    const key = `F:${d.v}`, p = vpending.get(key);
+    const key = `O:${d.v}`, p = vpending.get(key);
     if (!p) continue;
-    d.F ??= {};
-    const fields = Object.keys(p).filter((f) => f !== "at");
-    const same = (f) => JSON.stringify(d.F[f] ?? (f === "f" ? [] : 0)) === JSON.stringify(p[f]);
-    if (fields.every(same) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) vpending.delete(key);
-    else Object.assign(d.F, Object.fromEntries(fields.map((f) => [f, p[f]])));
+    if (d[p.lib]?.id === p.rec.id || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) vpending.delete(key);
+    else d[p.lib] = {...p.rec};
   }
   // 改过标题和正文、还没同步回来的，按本机记录显示，规则同上
   for (const d of items) {
@@ -1074,15 +1306,22 @@ function applyV(raw) {
     else { d.t = p.t; d.text = searchText(d); }
   }
   saveVPending();
-  // 网页上新建、还没同步回来的收藏夹，规则同上
-  vfolderPending = vfolderPending.filter((p) => !(raw.folders ?? []).includes(p.name) && readAt <= p.at + 10000 && Date.now() - p.at <= PENDING_TTL_MS);
-  store.set("vfolders", vfolderPending);
+  // 有添加顺序、没有添加时间的（抖音），初次导入以后的批次日期就是加入的日子，近期新增的卡片底栏写这个日期；
+  // 最早那一批是初次导入的全部旧数据，不知道真实的加入日期，不写
+  for (const k of ["K", "L"]) {
+    const batches = items.map((d) => d[k]?.q?.slice(0, 10)).filter(Boolean);
+    if (!batches.length) continue;
+    const first = batches.reduce((m, b) => (b < m ? b : m));
+    for (const d of items) { const b = d[k]?.q?.slice(0, 10); if (b && !d[k].j && b > first) d[k].j = `${b}T00:00:00`; }
+  }
   const cats = raw.cats ?? {};
   // 侧栏按收藏库的分类顺序列，喜欢库多出来的接在后面
   const categories = [...new Set([...(cats.K ?? []), ...(cats.L ?? [])])];
-  const shown = items.filter((x) => ["L", "K"].some((k) => x[k] && (!x[k].x || (x[k].d ?? "") >= cutoff)));
-  vdata = {cats, categories, folders: [...(raw.folders ?? []), ...vfolderPending.map((p) => p.name)], items: shown, cutoff};
+  const shown = items.filter((x) => ["L", "K"].some((k) => x[k]));
+  vdata = {cats, categories, items: shown};
   vById = new Map(shown.map((d) => [d.v, d]));
+  // 「加入先后」要看数据里有没有添加顺序，所以数据读到后再生成一次排序菜单
+  if (state.mode === "videos") buildArrange("videos");
   // 静默刷新时保持滚动位置；第一次读到时滚动位置本来就在顶上
   if (state.mode === "videos") { buildPlats(); refresh(); }
 }
@@ -1095,7 +1334,7 @@ function loadV() {
   return vLoading;
 }
 // 视频数据读过之后，「从 Notion 同步」完成、切回窗口时随关注数据一起静默重读；内容没变就不重绘。
-// 只重读关注数据的话，同步完视频页会停在旧数据上
+// 之前只重读关注数据，同步完视频页一直停在旧数据上
 let lastVText = "";
 function reloadV() {
   if (!vdata) return;
@@ -1107,14 +1346,15 @@ function reloadV() {
 }
 // 视频的写入：lib 是改哪一边（K 收藏、L 喜欢），两边各写各的页面
 function vset(d, lib, patch, record) {
-  Object.assign(d[lib], patch);
+  Object.assign(d[lib], patch); vEdits++;
   if (record) vpending.set(d[lib].id, record); else vpending.delete(d[lib].id);
   saveVPending();
   refresh();
 }
-// 编辑文字：点卡片上的铅笔弹出编辑框，只有一个文本框，标题在第一行（不分标题和正文）。
-// 数据文件里的文字截到 300 字，所以先经 /video/text/get 读 Notion 里完整的。保存时第一行写进「名称」：
-// 小红书第二行起写进「正文」；X 整段写进「正文」，名称取第一行前 60 字（同导入时的写法）。
+// 编辑文字（抖音、X、小红书）：点卡片上的铅笔弹出编辑框，只有一个文本框，标题在第一行。
+// 数据文件里的文字截到 300 字，所以先经 /video/text/get 读 Notion 里完整的。保存时：
+// 小红书第一行写进「名称」，第二行起写进「正文」；X 整段写进「正文」，名称取第一行前 60 字（同导入时的写法）；
+// 抖音整段写进「文案」，名称取第一个话题标签之前的那段（见 douyinTitle）。
 // 同一条在两个库里的行一起改（POST /video/text），卡片先按本机记录显示，同步回来再以快照为准，没写成就退回并提示
 const PEN_POSTER = svgIcon('<path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/>', 14);
 const searchText = (d) => `${d.t ?? ""} ${d.a ?? ""} ${d.g ?? ""}`.toLowerCase();
@@ -1171,31 +1411,33 @@ function vchange(d, lib, patch, path, body, what) {
   vset(d, lib, patch, {...prev, ...patch, at: Date.now()});
   post(path, {platform: state.plat, lib, id: rec.id, ...body}).catch((err) => { vset(d, lib, before, prev); toast(`${what}没有保存：${err.message}`); });
 }
-// 星标与收藏夹的写入。接口（Worker 按视频 ID 找收藏夹库里那份复制，没有就从收藏库那行复制一份新建，返回它的页面 ID）：
-//   POST /video/star {v, kid, on}：勾上或取消「星标」
-//   POST /video/folder {v, kid, folder, on}：把视频加入或移出一个收藏夹，只改这一个
-//   POST /video/folder/new {name}：收藏夹库的收藏夹列加一个选项
-// 同一个视频的写入一条接一条发，后一条不会读到前一条写完之前的收藏夹列表
-const fchain = new Map();
-function fchange(d, patch, path, body, what) {
-  d.F ??= {};
-  const key = `F:${d.v}`, before = {s: d.F.s ?? 0, f: [...(d.F.f ?? [])]}, prev = vpending.get(key) ?? null;
-  Object.assign(d.F, patch);
-  vpending.set(key, {...prev, ...patch, at: Date.now()}); saveVPending();
+// 卡片底栏的收藏、喜欢按钮：那个库已有这一条就标取消或恢复（同卡片菜单的取消、恢复，恢复时 X 与小红书另写添加时间）；
+// 还没有就请 Worker 从另一个库那一行复制新建（POST /video/other），返回新行的页面 ID、分类和添加顺序，同步回来之前按本机记录显示。
+// 取消的是当前这一页的库时，卡片随即离开列表，到「近期取消」里还能点回来
+const otherBusy = new Set();
+function toggleLib(d, k) {
+  const o = d[k], name = libName(k), date = nowLocal();
+  if (o && !o.id.startsWith("new:")) {
+    if (o.x) { vchange(d, k, isDouyin() ? {x: 0, d: ""} : {x: 0, d: "", j: date}, "/video/cancel", {on: false, date}, `加入${name}`); return toast(`已加入${name}`); }
+    vchange(d, k, {x: 1, d: date}, "/video/cancel", {on: true, date}, `取消${name}`); return toast(`已取消${name}`);
+  }
+  const from = k === "K" ? "L" : "K", other = k, lib = from;
+  if (!d[from] || otherBusy.has(d.v)) return;
+  otherBusy.add(d.v);
+  d[other] = {id: `new:${d.v}`, c: d[lib].c}; vEdits++;
   refresh();
-  // 复制来源：有收藏就用收藏那一行，只在喜欢里的用喜欢那一行（星标才会这样，收藏夹只在收藏页出现）
-  const send = () => post(path, {platform: state.plat, v: d.v, lib: d.K ? "K" : "L", kid: (d.K ?? d.L).id, ...body})
-    .then((res) => { if (res?.id) d.F.id = res.id; })
-    .catch((err) => {
-      Object.assign(d.F, before);
-      if (prev) vpending.set(key, prev); else vpending.delete(key);
-      saveVPending(); refresh(); toast(`${what}没有保存：${err.message}`);
-    });
-  fchain.set(d.v, (fchain.get(d.v) ?? Promise.resolve()).then(send));
+  post("/video/other", {platform: state.plat, v: d.v, from: lib, id: d[lib].id, date})
+    .then((res) => {
+      // 新批次不是初次导入那一批，批次日期就是加入的日子，进「近期新增」
+      d[other] = {id: res.id, c: res.c ?? d[lib].c, ...(res.q ? {q: res.q, j: `${res.q.slice(0, 10)}T00:00:00`} : {})};
+      vpending.set(`O:${d.v}`, {lib: other, rec: d[other], at: Date.now()}); saveVPending(); vEdits++;
+      refresh(); toast(`已加入${name}`);
+    })
+    .catch((err) => { delete d[other]; vEdits++; refresh(); toast(`加入${name}没有保存：${err.message}`); })
+    .finally(() => otherBusy.delete(d.v));
 }
+// 星标：这条在两个库里的行一起勾或取消「星标」列（POST /video/star {v, rows, on}），同步回来之前按本机记录显示
 function toggleStar(d) {
-  if (hasFolders()) return fchange(d, {s: d.F?.s ? 0 : 1}, "/video/star", {on: !d.F?.s}, d.F?.s ? "取消星标" : "星标");
-  // X 与小红书：这条在两个库里的行一起勾或取消「星标」列，同步回来之前按本机记录显示
   const on = !starredOf(d), ks = ["K", "L"].filter((k) => d[k]);
   const before = ks.map((k) => [k, d[k].s ?? 0, vpending.get(d[k].id) ?? null]);
   for (const k of ks) { d[k].s = on ? 1 : 0; vpending.set(d[k].id, {...vpending.get(d[k].id), s: d[k].s, at: Date.now()}); }
@@ -1205,23 +1447,15 @@ function toggleStar(d) {
     saveVPending(); refresh(); toast(`${on ? "星标" : "取消星标"}没有保存：${err.message}`);
   });
 }
-function toggleFolder(d, name) {
-  if (name === STARRED) return toggleStar(d);
-  const now = d.F?.f ?? [], on = !now.includes(name);
-  fchange(d, {f: on ? [...now, name] : now.filter((f) => f !== name)}, "/video/folder", {folder: name, on}, `${on ? "加入" : "移出"}「${name}」`);
-}
-// 视频卡片的菜单：收藏里先列收藏夹（所在的打勾，点一下加入或移出），再列每一边各自的分类（两个库各自独立），最后是「取消收藏、取消喜欢」或「恢复」
+// 视频卡片的菜单：先列每一边各自的分类（两个库各自独立），再是「取消收藏、取消喜欢」或「恢复」
 function videoMenu(d) {
   const ks = libsOf(d);
   const lists = ks.filter((k) => !d[k].x).map((k) => (ks.length > 1 ? `<div class="mh">${libName(k)}的分类</div>` : `<div class="mh">分类</div>`)
     + (vdata.cats[k] ?? []).map((c) => `<button role="menuitemradio" data-lib="${k}" data-cat="${esc(c)}" aria-checked="${d[k].c === c}">${CHECK_ICON}<b>${esc(c)}</b></button>`).join("")).join("");
-  const folds = state.v.lib === "K" && d.K && !d.K.x && hasFolders() ? `<div class="mh">收藏夹</div>` + [STARRED, ...vdata.folders].map((f) =>
-    `<button role="menuitemcheckbox" data-folder="${esc(f)}" aria-checked="${inFolder(d, f)}">${CHECK_ICON}<b>${esc(f)}</b></button>`).join("") + `<div class="sep"></div>` : "";
   const acts = ks.map((k) => d[k].x ? `<button role="menuitem" data-lib="${k}" data-act="restore">恢复${libName(k)}</button>` : `<button role="menuitem" class="warn" data-lib="${k}" data-act="cancel">标记取消${libName(k)}</button>`).join("");
-  return (folds || lists ? `<div class="cmlist">${folds}${lists}</div><div class="sep"></div>` : "") + acts;
+  return (lists ? `<div class="cmlist">${lists}</div><div class="sep"></div>` : "") + acts;
 }
 function videoMenuPick(d, it) {
-  if (d && it.dataset.folder !== undefined) return toggleFolder(d, it.dataset.folder);
   const k = it.dataset.lib;
   if (!d?.[k]) return;
   if (it.dataset.cat !== undefined) {
@@ -1231,7 +1465,7 @@ function videoMenuPick(d, it) {
     vchange(d, k, {x: 1, d: date}, "/video/cancel", {on: true, date}, `取消${libName(k)}`);
   } else if (it.dataset.act === "restore") {
     const date = nowLocal();
-    vchange(d, k, {x: 0, d: "", j: date}, "/video/cancel", {on: false, date}, `恢复${libName(k)}`);
+    vchange(d, k, isDouyin() ? {x: 0, d: ""} : {x: 0, d: "", j: date}, "/video/cancel", {on: false, date}, `恢复${libName(k)}`);
   }
 }
 
@@ -1240,11 +1474,12 @@ const ARTICLE_ICON = svgIcon('<path d="M6 3.5h8.5L18 7v13.5H6Z"/><path d="M9 11h
 // 收藏日期只有年月日，直接按字符串取，不经 Date（按 UTC 解析会在西半球早一天）
 const wdate = (s) => `${+s.slice(0, 4) === new Date().getFullYear() ? "" : `${+s.slice(0, 4)}年`}${+s.slice(5, 7)}月${+s.slice(8, 10)}日`;
 const acctHref = (name) => `/wechat?account=${encodeURIComponent(name)}`;
+// 卡片右上角改标题的小铅笔
 const PEN_SMALL = svgIcon('<path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/>', 14);
-// 卡片只显示标题
+// 卡片只显示标题；没有「标题」的旧数据退回显示原来那一段
 function wcard(d) {
   const src = d.a ? `<a class="acc" href="${acctHref(d.a)}" data-acct="${esc(d.a)}">${esc(d.a)}</a>` : `<span>没有公众号</span>`;
-  return `<div class="art" data-wcard="${d.id}"><button class="pen" data-pen="${d.id}" aria-label="改标题" title="改标题">${PEN_SMALL}</button><p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${esc(d.n)}</a></p><div class="src">${src}<time>${d.j ? wdate(d.j) : ""}</time><button class="more" data-wid="${d.id}" aria-haspopup="menu" aria-expanded="false" aria-label="改公众号">${MORE_ICON}</button></div></div>`;
+  return `<div class="art" data-wcard="${d.id}"><button class="pen" data-pen="${d.id}" aria-label="改标题" title="改标题">${PEN_SMALL}</button><p><a class="hit" href="${esc(d.u)}" target="_blank" rel="noopener">${esc(d.n || d.t)}</a></p><div class="src">${src}<time>${d.j ? wdate(d.j) : ""}</time><button class="more" data-wid="${d.id}" aria-haspopup="menu" aria-expanded="false" aria-label="改公众号">${MORE_ICON}</button></div></div>`;
 }
 // 侧栏公众号的封面：名字首字放在按名字取色的方块里
 const acctTile = (name) => `<span class="tile ini" style="${palVars(name)}" aria-hidden="true">${esc([...name][0])}</span>`;
@@ -1278,7 +1513,7 @@ function recount() {
   wdata.counts = new Map(); wdata.catCounts = new Map(); wdata.acctLast = new Map(); wdata.catLast = new Map();
   const later = (m, k, j) => { if (j && j > (m.get(k) ?? "")) m.set(k, j); };
   for (const d of wdata.items) {
-    d.text = `${d.n} ${d.a}`.toLowerCase();
+    d.text = `${d.n || d.t} ${d.a}`.toLowerCase();
     if (d.a) wdata.counts.set(d.a, (wdata.counts.get(d.a) ?? 0) + 1);
     const c = d.c || UNSORTED;
     wdata.catCounts.set(c, (wdata.catCounts.get(c) ?? 0) + 1);
@@ -1405,7 +1640,7 @@ const saveWPending = () => store.set("wpending", Object.fromEntries(wpending));
 function editTitle(d) {
   const card = document.querySelector(`.art[data-wcard="${d.id}"]`); if (!card) return;
   const p = card.querySelector("p");
-  p.outerHTML = `<textarea class="ttl" maxlength="200" aria-label="标题">${esc(d.n)}</textarea><span class="tip">回车保存，Esc 取消</span>`;
+  p.outerHTML = `<textarea class="ttl" maxlength="200" aria-label="标题">${esc(d.n || d.t)}</textarea><span class="tip">回车保存，Esc 取消</span>`;
   const box = card.querySelector("textarea.ttl");
   const fit = () => { box.style.height = "auto"; box.style.height = `${box.scrollHeight}px`; };
   fit(); box.focus(); box.select();
@@ -1414,7 +1649,7 @@ function editTitle(d) {
     if (done) return;
     done = true;
     const n = box.value.replace(/\s+/g, " ").trim();
-    if (!save || !n || n === (d.n)) return refresh();
+    if (!save || !n || n === (d.n || d.t)) return refresh();
     const before = d.n, prev = wpending.get(d.id) ?? null;
     d.n = n;
     wpending.set(d.id, {...prev, n, at: Date.now()}); saveWPending(); recount(); refresh();
@@ -1477,30 +1712,534 @@ function openAcct(name) {
   document.querySelector(".cat[aria-current=true]")?.scrollIntoView({block: "nearest"});
 }
 
+// ===== 豆瓣：一页书架，侧栏四个入口，下面按出版社、分类或专题分组 =====
+// 一本书在某种分组方式下属于哪几组：出版社只有一个，分类、专题可以有几个；影片按导演分，合导的片子在几位导演下各出现一次
+const bGroupsOf = (d, by = state.b.by) => by === "pub" ? (d.p ? [d.p] : []) : by === "dir" ? d.dr : by === "genre" ? d.g : d.z;
+// 书封：有封面图（仓库里的 public/covers/douban/<条目编号>.jpg，同步时看到文件就标 f）就显示图，懒加载；
+// 没有的按书名和豆瓣链接稳定取一组分类配色，用排版生成书封
+const COVER_KEYS = Object.keys(PAL);
+// 深色布面只用沉稳的几组，粉、橙这类亮色只出现在浅色书封上
+const DEEP_KEYS = ["人工智能", "财经投资", "心理成长", "数码硬件", "历史人文", "时事国际", "异国见闻", "科学科普", "健康医疗", "编程开发", "读书文学", "哲学思想", "法律常识", "旅行风光", "家居装修", "体育赛事", "眼镜验配", "人生感悟"];
+const CJK_RE = /^[㐀-鿿豈-﫿·、，]+$/;
+// 横排书名按视觉长度分四档字号（中文一个字算 1，西文字母算 .56）
+const visLen = (s) => [...s].reduce((n, c) => n + (/[⺀-￯]/.test(c) ? 1 : c === " " ? .3 : .56), 0);
+// 封面上的出版社用简称（像书脊下端的社名），全称留给侧栏与搜索
+const IMPRINT = {"生活·读书·新知三联书店": "三联书店", "外语教学与研究出版社": "外研社"};
+const imprint = (p) => IMPRINT[p] ?? (p.replace(/(出版社|出版公司|出版集团|出版中心)$/, "") || p);
+const firstOf = (list) => list.length ? list[0] + (list.length > 1 ? " 等" : "") : "";
+const authorLine = (d) => firstOf(d.a);
+// 书名：去掉混进书名的「 作者 著」，冒号后与末尾括注（第几版等）作副题，封面上小一号
+function splitTitle(t) {
+  const s = String(t || "").replace(/\s{2,}.*$/, "").trim() || String(t || "").trim();
+  let main = s, sub = "";
+  const m = s.match(/^(.+?)\s*[：:]\s*(.+)$/) || s.match(/^(.{2,}?)\s+[—–-]{1,2}\s*(.+)$/);
+  if (m) { main = m[1]; sub = m[2]; }
+  const p = main.match(/^(.+?)\s*([（(][^）)]*[)）])$/);
+  if (p) { main = p[1]; sub = sub ? `${p[2]} ${sub}` : p[2]; }
+  return {main, sub};
+}
+// 按书名和链接算的稳定散列，同一本书每次打开都是同一组配色和版式
+const strHash = (s) => { let h = 2166136261; for (const c of s) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+// 影片没有海报时同样按片名生成一张：出版社的位置写年份，作者的位置写导演
+function bookCover(d) {
+  const h = d.h, deep = h % 10 < 3, movie = d.kind === "movie";
+  const key = deep ? DEEP_KEYS[(h >>> 4) % DEEP_KEYS.length] : COVER_KEYS[(h >>> 4) % COVER_KEYS.length];
+  const people = movie ? d.dr : d.a, label = movie ? d.y : d.p && imprint(d.p);
+  const au = firstOf(people), first = people[0] ?? "", n = [...d.main].length;
+  const pubTag = label ? `<span class="cvl"><span>${esc(label)}</span></span>` : "";
+  const photo = d.f ? `<img src="/covers/${SHELF[d.kind].dir}/${esc(d.v)}.jpg" alt="" loading="lazy" decoding="async">` : "";
+  // 竖排只给短的中文书名、中文作者名，西文竖写会躺倒
+  const vertical = CJK_RE.test(d.main) && n >= 2 && n <= 8 && (!first || (CJK_RE.test(first) && [...first].length <= 10)) && (h >>> 9) % 2 === 0;
+  if (vertical) {
+    const ts = n <= 4 ? 13 : n <= 6 ? 11 : 9.6, tl = n >= 7 ? ".1em" : ".16em";
+    return `<div class="cv v grain${deep ? " deep" : ""}" style="${palVars(key)}"><div class="col"><span class="cvt" style="--ts:${ts};--tl:${tl}">${esc(d.main)}</span>${first ? `<span class="cva">${esc(first)}</span>` : ""}</div>${pubTag}${photo}</div>`;
+  }
+  const w = visLen(d.main), ts = w <= 7 ? 12.4 : w <= 16 ? 10.6 : w <= 30 ? 9.3 : 8.3;
+  return `<div class="cv h grain${deep ? " deep" : ""}" style="${palVars(key)}">${motif(key, 94, 120, h >>> 13)}<div class="ci">${pubTag}<span class="cvt" style="--ts:${ts}">${esc(d.main)}</span>${d.sub ? `<span class="cvs">${esc(d.sub)}</span>` : ""}<span class="cvr"></span><span class="cva">${esc(au || " ")}</span></div>${photo}</div>`;
+}
+// 卡片：封面为主，下面书名，再一行作者（没有作者写出版社），右端是星标和「…」（菜单里标记取消或恢复），带短评的另起一行；
+// 点卡片别处都是打开这本书的详情页（豆瓣链接在详情页里）。取消了的书（只在近期取消里）不出星标，书名下写取消的日子，同内容页
+// 影片在作者那一行写导演与年份
+function bcard(d) {
+  const by = d.kind === "movie" ? [firstOf(d.dr), d.y].filter(Boolean).join(" · ") : authorLine(d) || d.p;
+  const star = d.x ? "" : `<button class="star" data-bid="${d.id}" aria-pressed="${Boolean(d.st)}" aria-label="${d.st ? "取消星标" : "标星"}">${STAR_ICON}</button>`;
+  const gone = d.x && d.d ? `<span class="when">${vdate(d.d)}取消</span>` : "";
+  return `<div class="bk${d.x ? " gone" : ""}">${bookCover(d)}<div class="bi"><p class="bt"><a class="hit" href="${SHELF[d.kind].item}/${esc(d.v)}" data-book="${esc(d.v)}" title="${esc(d.n)}">${esc(d.n)}</a></p>${gone}<div class="bm"><span class="ba">${esc(by || "")}</span>${star}<button class="more" data-bid="${d.id}" aria-haspopup="menu" aria-expanded="false" aria-label="${d.x ? "恢复" : "标记取消"}">${MORE_ICON}</button></div>${d.s ? `<div class="bc">${esc(d.s)}</div>` : ""}</div></div>`;
+}
+// ===== 豆瓣：一本书的详情页 /douban/book/<豆瓣编号> =====
+// 左栏封面、星标、在豆瓣打开、标记取消，电脑上随页面停住；右栏丛书、书名、副标题、原作名、作译者、豆瓣评分、分类与专题、我的短评、
+// 内容简介、目录、出版信息；下面一排同专题的书。
+// 豆瓣资料是随网页部署的静态文件 /details/douban/<编号>.json（scripts/write-douban-details.mjs 写），没有的书只显示书架上已有的几项
+const bdetail = new Map();
+let noteEditing = false;
+const EXT_ICON = `<svg class="ext" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>`;
+const chev = (d) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+const NOTE_PEN = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+// 没写短评时右上角的虚线折痕：这一角还没折
+const FOLD_GUIDE = `<svg class="guide" viewBox="0 0 47 47" aria-hidden="true"><path d="M0 0H47V47Z" fill="rgba(106,119,230,.07)"/><path d="M1 1 46 46" stroke="#3B46B4" stroke-opacity=".38" stroke-width="1.4" stroke-dasharray="3.5 3.5"/></svg>`;
+const NOTE_MAX = 350;
+// 评分星：按 10 分制折成 5 颗，末一颗按小数部分填
+const rateStar = (fill, i) => `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="rs${i}"><stop offset="${fill}" stop-color="currentColor"/><stop offset="${fill}" stop-color="rgba(22,21,26,.12)"/></linearGradient></defs><path fill="url(#rs${i})" d="m12 3.2 2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9Z"/></svg>`;
+
+// 读一本书的豆瓣资料；读到后若还停在这本书上就重画。读不到（还没有这个文件、登录过期）记 null，只显示书架上的几项。
+// 影片的资料在 /details/douban-movie/；书和影片的豆瓣编号各自编号、可能撞号，缓存按页签分开记
+function bookDetail(d) {
+  const v = d.v, key = `${d.kind}/${v}`;
+  if (bdetail.has(key)) return bdetail.get(key);
+  bdetail.set(key, null);
+  fetch(`/details/${SHELF[d.kind].dir}/${v}.json`)
+    .then((r) => r.ok && (r.headers.get("content-type") ?? "").includes("json") ? r.json() : null)
+    .catch(() => null)
+    .then((x) => { if (!x) return; bdetail.set(key, x); if (isDouban() && state.bkind === d.kind && state.b.book === v) refresh(); });
+  return null;
+}
+function openBook(v) {
+  keepTop(); closeCardMenu();
+  state.b.book = v; noteEditing = false;
+  history.pushState({top: 0, book: true}, "", urlOf());
+  render(); scroller().scrollTo({top: 0});
+}
+// 返回：从书架点进来的回到书架原处；直接打开详情网址的回到这本书的出版社（影片回到它的第一位导演）
+function closeBook(d) {
+  if (history.state?.book) return history.back();
+  openGroup(shelf().defBy, (d && shelf().home(d)) || null);
+}
+function openGroup(by, cat) {
+  state.b.book = null; state.b.by = by; state.b.cat = cat; state.b.view = B.ALL;
+  state.q = ""; $("q").value = "";
+  renderSide(); render(); scroller().scrollTo({top: 0}); remember();
+}
+// 短评卡片三种样子：没写（虚线折痕、标题与一句说明、右下角按钮）、正在写（就地变输入框）、写了（折下蓝角，悬停出「修改」）。
+// 没写时的字按空状态的通行写法：说明现状的标题、告诉下一步的说明、动词开头的按钮（Nielsen Norman Group、Atlassian），按钮与豆瓣同叫「写短评」
+function noteCard(d) {
+  if (noteEditing) {
+    return `<div class="dnote editing"><div class="paper"><div class="lab">我的短评</div><textarea maxlength="${NOTE_MAX}" placeholder="${SHELF[d.kind].notePrompt}" aria-label="短评">${esc(d.s)}</textarea><div class="bar">${d.s ? `<button class="del" data-ndel>删除</button>` : ""}<span>Ctrl + 回车保存，Esc 取消</span><span class="count">还能写 <b>${NOTE_MAX - [...d.s].length}</b> 字</span><button class="cancel" data-ncancel>取消</button><button class="save" data-nsave${d.s ? "" : " disabled"}>保存</button></div></div>${FOLD_GUIDE}</div>`;
+  }
+  if (!d.s) return `<div class="dnote empty" data-nwrite><div class="paper"><div class="etxt"><div class="eh">还没写短评</div><div class="ed">${SHELF[d.kind].noteHint}</div></div><button class="cta" data-nwrite>${NOTE_PEN}写短评</button></div>${FOLD_GUIDE}</div>`;
+  return `<div class="dnote"><div class="paper"><div class="lab">我的短评</div><p>${esc(d.s)}</p></div><i class="fsh" aria-hidden="true"></i><i class="flap" aria-hidden="true"></i><button class="edit" data-nwrite>${NOTE_PEN}修改</button></div>`;
+}
+function editNote(d, on) {
+  noteEditing = on;
+  const box = $("list").querySelector(".dnote"); if (!box) return;
+  box.outerHTML = noteCard(d);
+  const ta = $("list").querySelector(".dnote textarea");
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); fitNote(ta); }
+}
+const fitNote = (ta) => { ta.style.height = "auto"; ta.style.height = `${ta.scrollHeight}px`; };
+function saveNote(d, text) {
+  text = text.replace(/\r\n/g, "\n").trim();
+  noteEditing = false;
+  if (text === d.s) return editNote(d, false);
+  bchange(d, {s: text}, "/douban/note", {text}, text ? "短评" : "删除短评");
+  toast(text ? "短评已保存" : "短评已删除");
+}
+// 横排的书：电脑上用左右箭头翻，手机上手指横滑
+const bookStrip = (title, sub, cards, tail = "") => cards.length ? `<section class="drow"><div class="rh"><h2>${title}${sub ? ` <em>· ${esc(sub)}</em>` : ""}</h2>${tail}<span class="arr"><button data-arr="-1" aria-label="往前翻">${chev("m15 18-6-6 6-6")}</button><button data-arr="1" aria-label="往后翻">${chev("m9 18 6-6-6-6")}</button></span></div><div class="dstrip">${cards.join("")}</div></section>` : "";
+// 豆瓣评分、分类与专题、下面一排同专题、整页的框架（返回、左栏、右栏），书和影片的详情页共用
+// 几册合成一个条目时，详情资料里的 ratings 按册列出评分（每项带 label，如「第一册」），评分框一册一行
+const rateBox = (x) => x.ratings ? x.ratings.map(rateOne).join("") : rateOne(x);
+const rateOne = (x) => x.rating ? `<div class="drate"><div><div class="num">${x.rating.toFixed(1)}</div><span class="src">${x.label ? `${esc(x.label)} · ` : ""}豆瓣评分</span></div><div><div class="dstars">${[0, 1, 2, 3, 4].map((i) => rateStar(Math.max(0, Math.min(1, x.rating / 2 - i)), i)).join("")}</div><div class="votes">${x.votes.toLocaleString()} 人评价</div></div>${x.dist ? `<div class="ddist">${x.dist.map((p, i) => `<span>${5 - i} 星</span><i><b style="width:${p}%"></b></i><span>${p.toFixed(1)}%</span>`).join("")}</div>` : ""}</div>` : "";
+const tagLinks = (d) => d.g.map((g) => `<a class="dtag g" href="#" data-bgo="genre" data-cat="${esc(g)}" style="${palVars(g)}">${esc(g)}</a>`).join("")
+  + d.z.map((z) => `<a class="dtag z" href="#" data-bgo="topic" data-cat="${esc(z)}">${esc(z)}</a>`).join("");
+function sameTopicRow(d) {
+  const others = (f) => bdata.lists[B.ALL].filter((y) => y !== d && f(y)).sort((a, b) => (b.f ?? 0) - (a.f ?? 0));
+  // 同专题取同类最多的那个专题
+  const topic = d.z.map((z) => [z, others((y) => y.z.includes(z))]).sort((a, b) => b[1].length - a[1].length)[0];
+  return topic?.[1].length ? bookStrip("同专题", topic[0], topic[1].slice(0, 12).map(bcard), `<a href="#" data-bgo="topic" data-cat="${esc(topic[0])}">全部 ${topic[1].length + 1} ${SHELF[d.kind].unit} ›</a>`) : "";
+}
+// 几册合成一个条目时，详情资料里的 volumes 列出各册的豆瓣条目（label、v），按钮和出版信息里一册一个链接
+function doubanLinks(d) {
+  const vols = d.kind === "movie" ? null : bookDetail(d)?.volumes;
+  return vols?.length ? vols.map((it) => [it.label, `https://${new URL(d.u).host}/subject/${it.v}/`, it.v]) : [["", d.u, d.v]];
+}
+function showDetail(d, back, main) {
+  const sh = SHELF[d.kind];
+  show(`<nav class="dcrumb"><button data-bback>${chev("m15 18-6-6 6-6")}${esc(back)}</button></nav>
+<div class="dhero" style="${palVars(d.g[0] ?? sh.pal)}"><div class="dgrid">
+  <div class="drail">
+    <div class="dbook" data-bzoom role="button" tabindex="0" aria-label="放大${sh.picture}">${bookCover(d)}</div>
+    <div class="dbtns">${d.x ? "" : `<button class="dbtn${d.st ? "" : " pri"}" data-bstar aria-pressed="${Boolean(d.st)}">${STAR_ICON}${d.st ? "已星标" : sh.starText}</button>`}${doubanLinks(d).map(([label, u]) => `<a class="dbtn" href="${esc(u)}" target="_blank" rel="noopener">在豆瓣打开${esc(label)}${EXT_ICON}</a>`).join("")}</div>
+    <div class="dsmall"><button data-bx>${d.x ? "恢复" : "标记取消"}</button></div>
+  </div>
+  <div class="dmain">${main}
+  </div>
+</div></div>
+${sameTopicRow(d)}`);
+}
+// 影片的右栏：片名、原名、导演与主演、豆瓣评分、分类与专题、我的短评、剧情简介、影片信息；没有目录。
+// 导演、主演先用条目里的（Notion 里的那两列），条目里没填才用豆瓣资料里的
+function movieMain(d, x) {
+  const dr = d.dr.length ? d.dr : x.dr ?? [], ac = d.ac.length ? d.ac : x.ac ?? [];
+  // 资料里的项有的是数组（编剧、类型、又名），有的是一段文字，信息表里一律按豆瓣的写法用「 / 」隔开
+  const list = (v) => esc(Array.isArray(v) ? v.join(" / ") : v ?? "");
+  const by = [dr.length && `<b>${esc(dr.join("、"))}</b> 导演`, ac.length && `<b>${esc(firstFew(ac))}</b> 主演`].filter(Boolean).join(`<span class="sep">/</span>`);
+  // 导演能点，回到影视页这位导演的那一组；只有条目里的导演才有组
+  const dirs = d.dr.length ? d.dr.map((n) => `<a href="#" data-bgo="dir" data-cat="${esc(n)}">${esc(n)}</a>`).join(" / ") : list(dr);
+  const imdb = /^tt\d+$/.test(x.imdb ?? "") ? `<a href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">${x.imdb}</a>` : list(x.imdb);
+  const info = [["导演", dirs], ["编剧", list(x.wr)], ["主演", list(ac)], ["类型", list(x.genre)], ["制片国家/地区", list(x.region ?? d.rg)], ["语言", list(x.lang)],
+    ["上映日期", list(x.date ?? d.y)], ["片长", list(x.dur)], ["又名", list(x.alias)], ["IMDb", imdb], ["豆瓣", `<a href="${esc(d.u)}" target="_blank" rel="noopener">条目 ${esc(d.v)}</a>`]]
+    .filter(([, val]) => val).map(([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`).join("");
+  return `
+    <h1 class="dtitle">${esc(d.main)}</h1>
+    ${d.sub ? `<p class="dsub">${esc(d.sub)}</p>` : ""}
+    ${x.orig ? `<p class="dorig">${esc(x.orig)}</p>` : ""}
+    ${by ? `<p class="dby">${by}</p>` : ""}
+    ${rateBox(x)}
+    <div class="dtags">${tagLinks(d)}</div>
+    ${noteCard(d)}
+    ${x.intro ? `<section class="dsec"><h2>剧情简介</h2>${x.intro.split("\n").map((p) => `<p class="dintro">${esc(p)}</p>`).join("")}</section>` : ""}
+    <section class="dsec"><h2>影片信息</h2><dl class="dinfo mv">${info}</dl></section>`;
+}
+// 片名下的主演只列前四位，全部的在影片信息里
+const firstFew = (list, n = 4) => list.slice(0, n).join("、") + (list.length > n ? " 等" : "");
+// ===== 目录分层 =====
+// 目录是一行一项的文字，层级靠标号认：卷 > 部、篇、编、辑、单元、Part、Book > 章、回、讲、课、Chapter、Session、Lecture > 节、「1.」「一、」这类编号小节。
+// 没有标号的行跟在最近一个标号行下面、低一级（如「卷之一」下的诗题、「上辑」下的篇名、「One / …」下的小节）；
+// 开头的序言、前言在任何标号之前，照顶层排；附录、后记、注释、索引之类回到顶层，后面没标号的行也回到顶层。
+// 罗马数字「I.」前面出现过 Part 时算章，否则算部。每行给出 label（标号）、text（标题）、lv（缩进几层）
+const TOC_CN_RANK = {卷: 0, 册: 0, 部: 1, 编: 1, 篇: 1, 辑: 1, 单元: 1, 章: 2, 回: 2, 讲: 2, 课: 2, 节: 3};
+const TOC_BACK = /^(附录|附[：:　\s]|附篇|后记|後記|出版后记|编后记|译后记|译者后记|跋|代跋|结语|结束语|结论|結論|尾声|总结|参考|主要参考|部分参考|參考|文献目录|索引|人名|地名|主题索引|案例索引|术语表|词汇表|年表|注释|译名对照|交译名|名词对照|重要名词|中英文|中西文|推荐阅读|致谢|本书测试|Notes?\b|Bibliography|Index|Acknowledg|Appendix|Epilogue|Afterword|Remerciements|Épilogue|Glossary|References|Conclusion)/i;
+const TOC_WORD_NUM = "One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve";
+function parseToc(lines) {
+  // stack：从外到内当前打开的标号行的等级；一行的缩进层数 lv 就是它外面打开着几层
+  const stack = [];
+  let sawPart = false;
+  const join = (s) => s.replace(/(\S)[　\s]+(\S)$/, "$1$2");
+  const tidy = (label) => label.replace(/[\s　]+/g, /[A-Za-zÀ-ÿ]/.test(label) ? " " : "").trim();
+  const open = (label, text, rank) => {
+    while (stack.length && stack.at(-1) >= rank) stack.pop();
+    const lv = stack.length;
+    stack.push(rank);
+    return {label: tidy(label), text: text.trim(), lv};
+  };
+  return lines.map((raw) => {
+    // 豆瓣抄来的目录常带页码（「/ 001」「•002」），也常写成「第1 章/」
+    const t = String(raw).replace(/[\s　]*[/•·…．.]+[\s　]*\d{1,4}$|[\s　]+0\d{2}$/, "").trim();
+    let m;
+    if ((m = t.match(/^(第[\s　]*\S{1,6}?[\s　]*(单元|[章节卷册部篇编辑回讲课])分?)[\s　/:：,，、]*(.*)$/))) return open(m[1], m[3], TOC_CN_RANK[m[2]]);
+    if ((m = t.match(/^([上中下][篇辑编卷])[\s　：:]*(.*)$/))) return open(m[1], m[2], m[1].endsWith("卷") ? 0 : 1);
+    if ((m = t.match(/^(卷[之第]?[一二三四五六七八九十百零〇\d]+)[\s　：:]*(.*)$/))) return open(m[1], m[2], 0);
+    if ((m = t.match(/^((?:PART|Part|BOOK|Book|Partie|PARTIE)\s+(?:[IVXLC]+|\d+|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten))\b[.:：,，\s–—-]*(.*)$/))) { sawPart = true; return open(m[1], m[2], 1); }
+    if ((m = t.match(new RegExp(`^(${TOC_WORD_NUM})\\s*[/:.–—-]\\s*(.+)$`)))) return open(m[1], m[2], 1);
+    if ((m = t.match(/^((?:Chapter|CHAPTER|Chapitre|CHAPITRE|Session|Lecture|Article|Lesson)\s+(?:[IVXLC]+|\d+))\b[.:：,，\s–—-]*(.*)$/))) return open(m[1], m[2], 2);
+    if ((m = t.match(/^([IVXLC]+)(?:\.|\s+[–—-]|\s)\s*(.+)$/)) && /^[A-ZÀ-Ý]/.test(m[2])) return open(m[1], m[2], sawPart ? 2 : 1);
+    // 「1.」「1．」「1.2.1」「一、」这类编号：外面有标号行时，「1」「1.1」都是它的下一层、每多一个点再深一层；
+    // 外面没有标号行时按点数分层（「1」顶层、「1.1」第二层），全书只有「1.」「2.」的就是平铺的编号
+    // 带点的多级编号后面直接接中文、不留空格的也认（「2.3傅里叶积分」）；单个数字紧接中文的不算（「19世纪」「3个初级脑泡」）
+    if ((m = t.match(/^(\d{1,3}(?:\.\d{1,3})*)(?:[．.、]\s*|\s+)(.+)$/)) || (m = t.match(/^(\d{1,3}(?:\.\d{1,3})+)(?=[一-鿿])(.+)$/)) || (m = t.match(/^([一二三四五六七八九十]{1,3})(?:[．.、]\s*|[\s　]+)(.+)$/)) || (m = t.match(/^(\d{1,3})()$/))) {
+      const dots = m[1].split(".").length - 1;
+      return {label: m[1], text: m[2].trim(), lv: stack.length ? stack.length + Math.max(0, dots - 1) : dots};
+    }
+    // 「第一个生平素」这类没有章节字的标号，跟最近的标号行同级
+    if ((m = t.match(/^(第[一二三四五六七八九十百零〇\d]+\S{0,6})[\s　]+(.+)$/))) return {label: m[1], text: m[2], lv: Math.max(0, stack.length - 1)};
+    if (TOC_BACK.test(join(t))) { stack.length = 0; return {label: "", text: join(t), lv: 0}; }
+    return {label: "", text: join(t), lv: stack.length};
+  });
+}
+// 标号的显示宽度（em）：拉丁字母、数字约半个汉字宽
+const tocLabelWidth = (label) => [...label].reduce((w, c) => w + (/[\u0000-\u024f]/.test(c) ? 0.55 : 1), 0);
+function renderBook() {
+  $("arrange").hidden = true;
+  const sh = shelf(), d = bdata.items.find((x) => x.v === state.b.book);
+  if (!d) return show(sh.missing);
+  const x = bookDetail(d) ?? {};
+  const back = history.state?.book ? bViewName(state.b.cat ?? state.b.view) : (sh.home(d) || sh.place);
+  if (d.kind === "movie") return showDetail(d, back, movieMain(d, x));
+  const by = [d.a.length && `${x.nation ? `〔${esc(x.nation)}〕` : ""}<b>${esc(d.a.join("、"))}</b> 著`, d.r && `<b>${esc(d.r)}</b> 译`].filter(Boolean).join(`<span class="sep">/</span>`);
+  // 目录按「第几卷／章／节」认层级：书里出现的几种层级从大到小排成 0、1、2 级，没有编号的（引论、附录等）放最上一级
+  const tocItems = parseToc(x.toc ?? []);
+  const flat = tocItems.every((it) => !it.lv);
+  // 标号列每层各按本层最长的标号定宽，「Session 1」那层宽、下面「1」「2」那层窄，标题在各层里对齐
+  const lw = {};
+  const lwKey = (it) => `${it.lv}:${/^[\d.]+$/.test(it.label)}`;  // 同一层里数字编号与文字标号（Article I）分开定宽
+  for (const it of tocItems) lw[lwKey(it)] = Math.max(lw[lwKey(it)] ?? 0, tocLabelWidth(it.label));
+  const toc = tocItems.length ? `<section class="dsec"><h2>目录 <small>${tocItems.length} 项</small></h2><ol class="dtoc">${tocItems.map((it, i) => { const lv = it.lv; return `<li class="${flat ? "" : `l${Math.min(lv, 3)}`}${i >= 10 ? " extra" : ""}" style="--lv:${lv};--lw:${lw[lwKey(it)]}em"><span>${esc(it.label)}</span>${esc(it.text)}</li>`; }).join("")}</ol>${tocItems.length > 10 ? `<button class="dmore" data-toc>展开全部 ${chev("m6 9 6 6 6-6")}</button>` : ""}</section>` : "";
+  const info = [["出版社", d.p && `<a href="#" data-bgo="pub" data-cat="${esc(d.p)}">${esc(d.p)}</a>`], ["出版年", esc(x.date ?? d.y)], ["页数", x.pages], ["装帧", esc(x.binding ?? "")], ["定价", esc(x.price ?? "")], ["ISBN", esc(x.isbn ?? "")], ["丛书", esc(x.series ?? "")], ["豆瓣", doubanLinks(d).map(([label, u, v]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${label ? `${esc(label)} ` : ""}条目 ${esc(v)}</a>`).join("\n")]]
+    .filter(([, val]) => val).map(([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`).join("");
+  showDetail(d, back, `
+    ${x.series ? `<div class="dseries">${esc(x.series.replace("·", " · "))}</div>` : ""}
+    <h1 class="dtitle">${esc(d.main)}</h1>
+    ${x.sub ?? d.sub ? `<p class="dsub">${esc(x.sub ?? d.sub)}</p>` : ""}
+    ${x.orig ? `<p class="dorig">${esc(x.orig)}</p>` : ""}
+    ${by ? `<p class="dby">${by}</p>` : ""}
+    ${rateBox(x)}
+    <div class="dtags">${tagLinks(d)}</div>
+    ${noteCard(d)}
+    ${x.intro ? `<section class="dsec"><h2>内容简介</h2>${x.intro.split("\n").map((p) => `<p class="dintro">${esc(p)}</p>`).join("")}</section>` : ""}
+    ${toc}
+    <section class="dsec"><h2>出版信息</h2><dl class="dinfo">${info}</dl></section>`);
+}
+// 封面放大：有封面图的显示原图（600×840），没有的把生成的书封按窗口高度放大；影片的海报同样
+function zoomCover(d) {
+  closeZoom();
+  const box = document.createElement("div");
+  box.className = "dzoom"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", `${d.n} 的${SHELF[d.kind].picture}`);
+  box.innerHTML = `<button class="zx" aria-label="关闭">×</button><div class="zbook">${d.f ? `<img src="/covers/${SHELF[d.kind].dir}/${esc(d.v)}.jpg" alt="${esc(d.n)}">` : bookCover({...d, f: 0})}</div>`;
+  box.addEventListener("click", closeZoom);
+  document.body.append(box);
+}
+function closeZoom() { document.querySelector(".dzoom")?.remove(); }
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.querySelector(".dzoom")) { e.preventDefault(); closeZoom(); }
+  else if ((e.key === "Enter" || e.key === " ") && e.target.matches?.("[data-bzoom]")) { e.preventDefault(); const d = bdata?.items.find((x) => x.v === state.b.book); if (d) zoomCover(d); }
+});
+// 详情页上的点击；处理了返回 true
+function bookPageClick(e) {
+  const d = bdata?.items.find((x) => x.v === state.b.book); if (!d) return false;
+  const t = e.target;
+  if (t.closest("[data-bback]")) { closeBook(d); return true; }
+  if (t.closest("[data-bzoom]")) { zoomCover(d); return true; }
+  const go = t.closest("[data-bgo]");
+  if (go) { e.preventDefault(); openGroup(go.dataset.bgo, go.dataset.cat); return true; }
+  if (t.closest("[data-bstar]")) { toggleBookStar(d); return true; }
+  if (t.closest("[data-bx]")) { bookMenuPick(d, {dataset: {act: d.x ? "brestore" : "bcancel"}}); return true; }
+  if (t.closest("[data-nsave]")) { saveNote(d, $("list").querySelector(".dnote textarea").value); return true; }
+  if (t.closest("[data-ndel]")) { saveNote(d, ""); return true; }
+  if (t.closest("[data-ncancel]")) { editNote(d, false); return true; }
+  if (t.closest("[data-nwrite]")) { editNote(d, true); return true; }
+  if (t.closest("[data-toc]")) { const b = t.closest("[data-toc]"); b.previousElementSibling.classList.add("open"); b.remove(); return true; }
+  const arr = t.closest("[data-arr]");
+  if (arr) { const s = arr.closest(".drow").querySelector(".dstrip"); s.scrollBy({left: +arr.dataset.arr * s.clientWidth * .8, behavior: "smooth"}); return true; }
+  return false;
+}
+$("list").addEventListener("input", (e) => {
+  const ta = e.target.closest(".dnote textarea"); if (!ta) return;
+  fitNote(ta);
+  const box = ta.closest(".dnote");
+  box.querySelector(".count b").textContent = NOTE_MAX - [...ta.value].length;
+  box.querySelector(".save").disabled = !ta.value.trim() && !box.querySelector(".del");
+});
+$("list").addEventListener("keydown", (e) => {
+  const ta = e.target.closest(".dnote textarea"); if (!ta) return;
+  const d = bdata?.items.find((x) => x.v === state.b.book); if (!d) return;
+  if (e.key === "Escape") { e.preventDefault(); editNote(d, false); }
+  else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (ta.value.trim() || d.s) saveNote(d, ta.value); }
+});
+
+// kind 是读到的是哪个页签的数据；每一条记下 kind，卡片、封面、写入后重算都按它找自己那一边
+function applyB(raw, kind) {
+  // 文件里已按 Notion 行的创建时间从新到旧排好，就是「默认」的顺序，也是近期新增的先后
+  const items = (raw.items ?? []).map((x) => {
+    const base = {...x, bk: 1, kind, s: x.s ?? "", g: x.g ?? [], z: x.z ?? [], st: x.st ? 1 : 0, x: x.x ? 1 : 0, d: x.d ?? "", ...splitTitle(x.n)};
+    // 影片的年份按字符串排（同书的出版年），文件里写成数字也换成字符串
+    const d = kind === "movie" ? {...base, dr: x.dr ?? [], ac: x.ac ?? [], rg: x.rg ?? "", y: x.y ? String(x.y) : ""}
+      : {...base, a: x.a ?? [], r: x.r ?? "", p: x.p ?? "", y: x.y ?? ""};
+    d.h = strHash(d.n + d.u);
+    d.text = (kind === "movie" ? [d.n, ...d.dr, ...d.ac, d.rg] : [d.n, ...d.a, d.r, d.p]).join(" ").toLowerCase();
+    return d;
+  });
+  // 网页上标星、标记取消或恢复、还没同步回来的，按本机记录显示；丢掉的条件同关注页
+  const readAt = raw.updated ? Date.parse(raw.updated) : 0;
+  for (const d of items) {
+    const p = bpending.get(d.id);
+    if (!p) continue;
+    const fields = Object.keys(p).filter((k) => k !== "at");
+    if (fields.every((k) => d[k] === p[k]) || readAt > p.at + 10000 || Date.now() - p.at > PENDING_TTL_MS) bpending.delete(d.id);
+    else for (const k of fields) d[k] = p[k];
+  }
+  saveBPending();
+  bdata = bshelf[kind].data = {kind, items, byId: new Map(items.map((d) => [d.id, d])), updated: raw.updated ?? null};
+  bRecount(bdata);
+  updated = bdata.updated;
+  showStamp(); buildPlats();
+  renderSide(); render();
+}
+// 各入口与各组的书，标星、取消、恢复后重算。取消了的书只进近期取消，不算进全部图书、星标和各组。
+// 近期新增、近期取消同内容页各取最近的 99 本：新增按文件里的先后（Notion 行的创建时间从新到旧），
+// 取消按取消时刻从新到旧；时刻带时区，按时刻比较，不按字符串，同一时刻保持文件里的先后
+// data 是哪个页签的数据：写入没成功退回时可能已切到另一个页签，要重算的是这一条所在的那份
+function bRecount(data) {
+  // 写入没成功时会退回再算一次，那时可能已切到别的平台，豆瓣的数据已清空
+  if (!data) return;
+  const live = data.items.filter((d) => !d.x);
+  const gone = data.items.filter((d) => d.x).sort((a, b) => (Date.parse(b.d) || 0) - (Date.parse(a.d) || 0));
+  data.lists = {[B.ALL]: live, [B.STAR]: live.filter((d) => d.st), [B.NEW]: live.slice(0, RECENT_N), [B.RECENT]: gone.slice(0, RECENT_N)};
+  data.counts = {};
+  for (const by of Object.keys(SHELF[data.kind].groups)) {
+    data.counts[by] = new Map();
+    for (const d of live) for (const g of bGroupsOf(d, by)) data.counts[by].set(g, (data.counts[by].get(g) ?? 0) + 1);
+  }
+}
+// 星标、标记取消与恢复：先在页面上生效并记在本机，再写 Notion；没写成就退回改动前的样子并提示，前一次还没同步回来的改动仍按本机记录显示
+function bset(d, patch, record) {
+  Object.assign(d, patch);
+  if (record) bpending.set(d.id, record); else bpending.delete(d.id);
+  saveBPending(); bRecount(bshelf[d.kind].data); refresh();
+}
+function bchange(d, patch, path, body, what) {
+  const before = Object.fromEntries(Object.keys(patch).map((k) => [k, d[k]])), prev = bpending.get(d.id) ?? null;
+  bset(d, patch, {...prev, ...patch, at: Date.now()});
+  post(path, {id: d.id, ...body}).catch((err) => { bset(d, before, prev); toast(`${what}没有保存：${err.message}`); });
+}
+const toggleBookStar = (d) => bchange(d, {st: d.st ? 0 : 1}, "/douban/star", {on: !d.st}, d.st ? "取消星标" : "星标");
+// 卡片菜单只有一项：没取消的是「标记取消」，取消了的是「恢复」。取消时刻用本地时间带时区，近期取消按它排；
+// 取消后卡片随即离开列表，到近期取消里还能恢复
+const bookMenu = (d) => d.x ? `<button role="menuitem" data-act="brestore">恢复</button>` : `<button role="menuitem" class="warn" data-act="bcancel">标记取消</button>`;
+function bookMenuPick(d, it) {
+  if (it.dataset.act === "bcancel" && !d.x) {
+    const date = nowLocal();
+    bchange(d, {x: 1, d: date}, "/douban/cancel", {on: true, date}, "标记取消");
+    toast("已标记取消，在「近期取消」里可以恢复");
+  } else if (it.dataset.act === "brestore" && d.x) {
+    bchange(d, {x: 0, d: ""}, "/douban/cancel", {on: false}, "恢复");
+    toast("已恢复");
+  }
+}
+function loadB(silent) {
+  lastFetch = Date.now();
+  if (!silent) show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  // 只读当前页签的那份；读到时已切到别的页签就不用，切回来时再读
+  const plat = state.plat, kind = state.bkind, file = SHELF[kind].file;
+  return fetchJson(dataUrl(file))
+    .catch((err) => {
+      if (err.login) throw err;
+      console.error(`read ${dataUrl(file)} failed: ${err.message}`);
+      return fetchJson(bundledUrl(file)).then((r) => ({...r, source: "bundled"}));
+    })
+    // 影视库第一次同步之前，仓库里和打包的都还没有 movies.json：Worker 读不到仓库时转去读打包的那份，回的是空内容（标 bundled），
+    // 没经过 Worker 时是 404。两种都当作空库，显示空状态而不是报错；数据来源照旧，侧栏不因此标「备用数据」
+    .catch((err) => {
+      if (kind === "movie" && err.status === 404) return {text: "", source: dataSource};
+      throw err;
+    })
+    .then(({text, source}) => {
+      if (plat !== state.plat || kind !== state.bkind) return;
+      if (kind === "movie" && !text.trim().startsWith("{")) { text = '{"items":[]}'; source = dataSource; }
+      const changed = source !== dataSource;
+      dataSource = source;
+      if (changed && bdata) showStamp();
+      if (silent && text === bshelf[kind].text) return;
+      bshelf[kind].text = text;
+      applyB(JSON.parse(text), kind);
+    })
+    .catch((err) => {
+      if (silent && bdata) return err.login ? toast(err.message) : console.error(err);
+      showError(err);
+    });
+}
+// 侧栏组的排法：本数（影视是部数）或名称
+const bSortMenu = (name) => `<div class="mh">${name}排序</div>` + [["count", `${shelf().unit}数`, "从多到少"], ["name", "名称", "按拼音从 A 到 Z"]].map(([v, b, sm]) =>
+  `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
+// 出版社、导演这两种按名字分的组用首字方块
+const byInitial = (by) => by === "pub" || by === "dir";
+// 组的封面：出版社、导演是首字方块（同公众号），分类、专题是分类图标方块（同微信的内容分类）
+const bTile = (by, name) => byInitial(by) ? acctTile(name) : tile(name);
+function renderSideB() {
+  const sh = shelf(), by = state.b.by, name = sh.groups[by], want = bSortMenu(name);
+  document.querySelector(".sec > span").textContent = name;
+  const menu = $("catSort").querySelector(".menu");
+  if (menu.innerHTML !== want) menu.innerHTML = want;
+  syncSort("catSort", state.b.catSort);
+  if (!bdata) return;
+  $("pins").innerHTML = [[B.ALL, svgIcon(CAT_ICON[sh.pal])], [B.STAR, svgIcon(STAR_PATH)], [B.NEW, PIN_ICON[V.NEW]], [B.RECENT, PIN_ICON[V.RECENT]]]
+    .map(([v, icon], i) => pinBtn(v, icon, bdata.lists[v].length, i)).join("");
+  const counts = bdata.counts[by], names = [...counts.keys()];
+  names.sort(state.b.catSort === "name" ? byName : (a, b) => counts.get(b) - counts.get(a) || byName(a, b));
+  // 分类、专题还没在 Notion 里填时，列表处留一句说明，标题照常显示、不出排序；填上后同步就按组列出。
+  // 库里一条都没有时（影视刚建档）说「还没有分好」不对，列表处空着
+  $("catSort").hidden = !names.length;
+  $("cats").innerHTML = names.length ? names.map((g) => {
+    const n = counts.get(g);
+    return `<button class="cat" data-v="${esc(g)}">${bTile(by, g)}<span class="tx" title="${n.toLocaleString()} ${sh.unit}"><b>${esc(g)}</b><span class="num">${n.toLocaleString()}</span></span></button>`;
+  }).join("") : bdata.items.length ? `<p class="libnote">${name}还没有分好。</p>` : "";
+  markCurrent();
+}
+// 书的排法：默认是文件里的顺序；出版年份按年代分档；书名不分档。影片同样，按上映年份、片名（见 SHELF 的 arranges）
+const bArrangeMenu = () => `<div class="mh">${shelf().arrangeHead}</div>` + shelf().arranges.map(([v, b, sm]) =>
+  `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
+const bArrange = () => shelf().arranges.some(([v]) => v === state.b.arrange) ? state.b.arrange : "added";
+const decadeOf = (d) => d.y ? `${Math.floor(+d.y / 10) * 10} 年代` : SHELF[d.kind].yearless;
+// 选中一组时列表上方的头部，样子同微信公众号、分类的头部：封面方块、组名、本数
+function bookHead(name, n) {
+  const by = state.b.by;
+  return `<div class="ahead" style="${palVars(name)}"><span class="atile" aria-hidden="true">${byInitial(by) ? esc([...name][0]) : svgIcon(CAT_ICON[name] ?? OTHER_ICON, 30)}</span>
+  <div class="ainfo"><small>${shelf().groups[by]}</small><h1 title="${esc(name)}">${esc(name)}</h1><div class="ameta">${n.toLocaleString()} ${shelf().unit}</div></div></div>`;
+}
+// 页头「读书」「影视」两个页签，用「收藏、喜欢」那个分段按钮的样子；图标同侧栏「全部」那一格
+const B_TABS = Object.values(SHELF).map((sh) => `<button role="tab" data-kind="${sh.kind}" aria-selected="false">${svgIcon(CAT_ICON[sh.pal], 13)}${sh.kind === "movie" ? "影视" : "读书"}</button>`).join("");
+// 切页签：换成那一边的数据，没读过就读；那一边的入口、分组、排法保持上次离开时的样子
+function useShelf(kind) {
+  state.bkind = kind; bdata = bshelf[kind].data;
+  if (bdata) updated = bdata.updated;
+  else { $("pins").innerHTML = ""; $("cats").innerHTML = ""; }
+}
+function renderB() {
+  // 没有日期，不出日历；从别的平台带过来的日历状态一并清掉，地址里也就不会写 cal
+  state.cal.open = false; state.cal.f = null;
+  $("calBtn").hidden = true; $("cal").hidden = true; $("cal").innerHTML = "";
+  $("tabs").hidden = true; $("arrange").hidden = false;
+  const sh = shelf(), menu = $("arrange").querySelector(".menu"), want = bArrangeMenu();
+  if (menu.innerHTML !== want) menu.innerHTML = want;
+  syncSort("arrange", bArrange());
+  if (!$("btabs").childElementCount) $("btabs").innerHTML = B_TABS;
+  $("btabs").querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.kind === state.bkind)));
+  // 分组方式的按钮按页签换：书是出版社、分类、专题，影片是导演、分类、专题
+  if (($("bby").dataset.kind ?? "book") !== state.bkind) {
+    $("bby").innerHTML = Object.entries(sh.groups).map(([by, name]) => `<button data-by="${by}" aria-pressed="false">${name}</button>`).join("");
+    $("bby").dataset.kind = state.bkind;
+  }
+  $("bby").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.by === state.b.by)));
+  if (!bdata) return show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
+  queue = []; done = 0;
+  markCurrent();
+  if (state.b.book) return renderBook();
+  if (!bdata.items.length) return show(sh.empty);
+  // 搜索在没取消的全部书里找，与停在哪个入口、哪一组无关
+  const searching = Boolean(state.q), cat = searching ? null : state.b.cat, view = state.b.view;
+  // 近期新增固定按加入先后、近期取消固定按取消时刻，最近的在前，这两格不出排序菜单（同内容页）
+  const recentView = !searching && !cat && (view === B.NEW || view === B.RECENT);
+  $("arrange").hidden = recentView;
+  const live = bdata.lists[B.ALL];
+  const pool = searching ? live.filter((d) => d.text.includes(state.q)) : cat ? live.filter((d) => bGroupsOf(d).includes(cat)) : [...(bdata.lists[view] ?? live)];
+  if (!pool.length) {
+    const why = searching ? sh.searchWhy : cat ? `这个${sh.groups[state.b.by]}下还没有${sh.noun}。`
+      : {[B.STAR]: sh.starWhy, [B.RECENT]: `还没有取消的${sh.noun}。`}[view] ?? `这里还没有${sh.noun}。`;
+    return show(`<div class="state"><h2>${searching ? `没有匹配的${sh.noun}` : "这里还是空的"}</h2><p>${why}</p></div>`);
+  }
+  const arrange = bArrange();
+  if (recentView) queue.push(...pool);
+  else if (arrange === "title") queue.push(...pool.sort((a, b) => byName(a.n, b.n)));
+  else if (arrange === "year") {
+    // 出版年从新到旧，同一年保持默认的先后，没有出版年的放最后
+    pool.sort((a, b) => (b.y || "0").localeCompare(a.y || "0"));
+    for (let i = 0; i < pool.length;) {
+      const band = decadeOf(pool[i]);
+      let j = i;
+      while (j < pool.length && decadeOf(pool[j]) === band) j++;
+      queue.push({band, n: j - i}, ...pool.slice(i, j));
+      i = j;
+    }
+  } else queue.push(...pool);
+  show(cat ? bookHead(cat, pool.length) : ""); more();
+}
+
 // 关注与视频各记各的筛选和排序；切换时搜索清空
 const ARRANGE_MENU = {
   follows: [["follow", "关注先后", "最近关注的在前"], ["band", "粉丝数", "按粉丝量分档显示"], ["name", "名称", "按拼音从 A 到 Z，不分档"]],
-  videos: [["time", "发布时间", "从新到旧，按月分组"], ["likes", "点赞数", "从多到少，按点赞量分档"]],
+  videos: [["time", "发布时间", "从新到旧"], ["added", "加入先后", "最近加入的在前"], ["likes", "点赞数", "从多到少，按点赞量分档"]],
 };
-// 排序菜单：博主页有没有「粉丝数」看数据里有没有粉丝数，所以数据读到后再生成一次
+// 排序菜单：博主页有没有「粉丝数」看数据里有没有粉丝数，所以数据读到后再生成一次；内容页默认按加入先后（记在 varrange2，换过默认值所以换了键名）
 function buildArrange(m) {
-  $("arrange").querySelector(".menu").innerHTML = `<div class="mh">${m === "videos" ? `${noun()}排序` : "账号排序"}</div>` + ARRANGE_MENU[m].filter(([v]) => !(m === "follows" && v === "band" && !hasFans())).map(([v, b, sm]) =>
-    `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${m === "videos" && v === "time" && flatTime() ? "从新到旧" : sm}</small></button>`).join("");
+  $("arrange").querySelector(".menu").innerHTML = `<div class="mh">${m === "videos" ? `${noun()}排序` : "账号排序"}</div>` + ARRANGE_MENU[m].filter(([v]) => !(m === "follows" && v === "band" && !hasFans()) && !(m === "videos" && v === "added" && !hasAddOrder())).map(([v, b, sm]) =>
+    `<button role="menuitemradio" data-val="${v}" aria-checked="false">${CHECK_ICON}<b>${b}</b><small>${sm}</small></button>`).join("");
   syncSort("arrange", m === "videos" ? state.v.arrange : arrangeOf());
 }
 function setMode(m) {
-  const wx = isWx();
+  const wx = isWx(), db = isDouban();
   if (m !== state.mode) calReset();
   state.mode = m; store.set("mode", m);
   state.q = ""; $("q").value = "";
   const vhint = isX() ? "搜索正文或作者" : isRed() ? "搜索标题、正文、作者或话题" : "搜索文案、作者或话题";
-  const hint = wx ? "搜索标题或公众号" : m === "videos" ? vhint : "搜索账号名称或简介";
+  const hint = db ? shelf().hint : wx ? "搜索标题或公众号" : m === "videos" ? vhint : "搜索账号名称或简介";
   $("q").placeholder = hint;
-  $("q").setAttribute("aria-label", wx ? hint : m === "videos" ? vhint : "搜索名称或简介");
+  $("q").setAttribute("aria-label", wx || db ? hint : m === "videos" ? vhint : "搜索名称或简介");
   $("mode").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
-  buildArrange(m);
+  // 豆瓣的排序菜单由 renderB 换成图书的排法
+  if (!db) buildArrange(m);
   buildPlats();
-  if (m !== "videos" || wx) $("tabs").hidden = true;
+  if (m !== "videos" || wx || db) $("tabs").hidden = true;
+  // 豆瓣只有一页；数据没到时也先换好页头（分组切换、排序）和侧栏标题，列表是骨架
+  if (db) { renderSide(); render(); $("panel").scrollTo({top: 0}); return; }
   // 侧栏标题与公众号排序菜单在数据到之前就换好
   if (wx) { renderSide(); if (wdata) { render(); $("panel").scrollTo({top: 0}); } return; }
   if (m === "videos" && !vdata) { render(); $("pins").innerHTML = ""; $("cats").innerHTML = ""; loadV(); return; }
@@ -1511,7 +2250,36 @@ function setMode(m) {
 function catOrder() {
   return state.catSort === "name" ? [...data.categories].sort(byName) : [...data.categories].sort((a, b) => counts[b] - counts[a]);
 }
+// 列表上方的子分类标签条：只在博主页、停在一个分类上、且这个分类里有账号填了子分类时出现；搜索时收起。
+// 「全部」在最前，其后按账号数从多到少，人数相同按 src/subcategories.mjs 里的顺序。
+// 没人的子分类也列出来占位，灰掉、不能点；没填子分类的账号只在「全部」里
+// 要让某个子分类（如「其他」）固定排在最后，在这里写上「子分类名: 1」，其余按人数排
+const SUB_RANK = {};
+function renderSubbar() {
+  const bar = $("subbar"), c = state.view;
+  const all = !isDouban() && !isWx() && state.mode !== "videos" && !state.q && data ? data.subcats?.[c] ?? [] : [];
+  const live = all.length ? data.items.filter((d) => !d.x && d.c === c) : [];
+  const n = {};
+  for (const d of live) if (d.sc) n[d.sc] = (n[d.sc] ?? 0) + 1;
+  const used = all.some((x) => n[x]);
+  bar.hidden = !used;
+  if (!used) { bar.innerHTML = ""; return; }
+  const subs = all.map((x, i) => [x, i]).sort(([a, i], [b, j]) => (SUB_RANK[a] ?? 0) - (SUB_RANK[b] ?? 0) || (n[b] ?? 0) - (n[a] ?? 0) || i - j).map(([x]) => x);
+  const shown = state.sub ? n[state.sub] ?? 0 : live.length;
+  bar.innerHTML = `<div class="subhead"><h2>${esc(c)}</h2><span class="num">${state.sub ? `${esc(state.sub)} · ` : ""}${shown.toLocaleString()} 个账号</span></div>`
+    + `<div class="chips" role="group" aria-label="${esc(c)}的子分类">${[["", live.length], ...subs.map((x) => [x, n[x] ?? 0])].map(([x, k]) =>
+      `<button class="chip" data-sub="${esc(x)}" aria-pressed="${(state.sub ?? "") === x}"${x && !k ? " disabled" : ""}>${x ? esc(x) : "全部"}<span class="num">${k.toLocaleString()}</span></button>`).join("")}</div>`;
+}
+$("subbar").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  keepTop();
+  state.sub = b.dataset.sub || null;
+  render(); $("panel").scrollTo({top: 0}); remember();
+});
 function renderSide() {
+  // 豆瓣的分类、专题还没分好时藏了排序按钮，别处一律显示
+  $("catSort").hidden = false;
+  if (isDouban()) return renderSideB();
   if (isWx()) return renderSideW();
   // 微信页把这一栏换成了公众号，回到抖音时换回来
   document.querySelector(".sec > span").textContent = "分类";
@@ -1537,7 +2305,7 @@ function renderSide() {
 function apply(raw) {
   const cutoff = new Date(Date.now() - RECENT_DAYS * 864e5).toISOString().slice(0, 10);
   const items = raw.items.filter((x) => !x.x || (x.d ?? "") >= cutoff).map((x) => ({
-    id: x.id, n: x.n, p: x.p ?? null, c: x.c ?? null, u: x.u ?? null, b: x.b ?? "", a: x.a ?? null, f: x.f ?? 0,
+    id: x.id, n: x.n, p: x.p ?? null, c: x.c ?? null, sc: x.sc ?? null, u: x.u ?? null, b: x.b ?? "", a: x.a ?? null, f: x.f ?? 0,
     x: Boolean(x.x), d: x.d ?? "", s: Boolean(x.s), j: x.j ?? "", o: x.o ?? 0,
     text: (x.n + " " + (x.b ?? "")).toLowerCase(),
   }));
@@ -1554,9 +2322,11 @@ function apply(raw) {
   savePending();
   updated = raw.updated ?? null;
   showStamp();
-  data = {categories: raw.categories, items, cutoff};
+  data = {categories: raw.categories, subcats: raw.subcats ?? {}, items, cutoff};
+  // 选中的子分类不在当前分类下了（改了上下级），退回整个分类
+  if (state.sub && !(data.subcats[state.view] ?? []).includes(state.sub)) state.sub = null;
   byId = new Map(items.map((d) => [d.id, d]));
-  // 平台按钮两页共用，靠关注数据里的平台名单生成；停在视频页时关注数据照常更新，只是不重绘列表
+  // 平台按钮两页共用，按 PLATFORM_LIST、ENABLED 生成；停在视频页时关注数据照常更新，只是不重绘列表
   buildPlats();
   if (state.mode === "videos") return;
   renderSide();
@@ -1578,13 +2348,15 @@ function showStamp() {
 // 返回 JSON 文本；先看状态与类型，返回 HTML 错误页时不把 JSON 解析异常抛给用户
 function fetchJson(url) {
   return api(url).then((res) => {
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`.trim());
+    // 带上状态码：豆瓣影视要认出「还没有这个文件」
+    if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status} ${res.statusText}`.trim()), {status: res.status});
     if (!(res.headers.get("content-type") ?? "").includes("json")) throw new Error(`HTTP ${res.status}，返回的不是 JSON`);
     return res.text().then((text) => ({text, source: res.headers.get("x-data-source") ?? "bundled"}));
   });
 }
 
 function load(silent) {
+  if (isDouban()) return loadB(silent);
   if (isWx()) return loadW(silent);
   lastFetch = Date.now();
   if (!silent) show(`<div class="grid" style="margin-top:10px">${'<div class="sk"></div>'.repeat(9)}</div>`);
@@ -1648,6 +2420,9 @@ function refresh() {
 }
 $("list").addEventListener("click", (e) => {
   // 公众号名是真链接，按住 Ctrl 等键时交给浏览器在新标签页打开
+  if (isDouban() && state.b.book && bookPageClick(e)) return;
+  const bk = e.target.closest("a[data-book]");
+  if (bk) { if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; e.preventDefault(); return openBook(bk.dataset.book); }
   const pen = e.target.closest("[data-pen]");
   if (pen) { const d = wdata?.byId.get(pen.dataset.pen); if (d) editTitle(d); return; }
   const ed = e.target.closest("[data-ed]");
@@ -1655,15 +2430,13 @@ $("list").addEventListener("click", (e) => {
   const acc = e.target.closest("[data-acct]");
   if (acc) { if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; e.preventDefault(); return openAcct(acc.dataset.acct); }
   if (e.target.closest("[data-rename]")) return editAcctName();
-  const nf = e.target.closest("[data-new]");
-  if (nf) return editNewFolder(nf);
-  const f = e.target.closest(".folder[data-folder]");
-  if (f) { keepTop(); state.v.folder = f.dataset.folder; render(); $("panel").scrollTo({top: 0}); remember(); return; }
-  if (e.target.closest("[data-back]")) { keepTop(); state.v.folder = null; render(); $("panel").scrollTo({top: 0}); remember(); return; }
   const m = e.target.closest(".more");
   if (m) { e.stopPropagation(); return menuFor === m ? closeCardMenu() : openCardMenu(m); }
+  const ob = e.target.closest("[data-tog]");
+  if (ob) { const v = vById.get(ob.dataset.v); return v && toggleLib(v, ob.dataset.tog); }
   const b = e.target.closest(".star"); if (!b) return;
   if (b.dataset.vid) { const v = vById.get(b.dataset.vid); return v && toggleStar(v); }
+  if (b.dataset.bid) { const d = bdata?.byId.get(b.dataset.bid); return d && toggleBookStar(d); }
   const d = byId.get(b.dataset.id); if (!d) return;
   change(d, {s: !d.s}, "/star", {id: d.id, on: !d.s}, "星标");
 });
@@ -1687,10 +2460,16 @@ function openCardMenu(btn) {
   } else if (btn.dataset.vid) {
     const v = vById.get(btn.dataset.vid); if (!v) return;
     menu.innerHTML = videoMenu(v);
+  } else if (btn.dataset.bid) {
+    const d = bdata?.byId.get(btn.dataset.bid); if (!d) return;
+    menu.innerHTML = bookMenu(d);
   } else {
     const d = byId.get(btn.dataset.id); if (!d) return;
     const cats = data.categories.map((c) => `<button role="menuitemradio" data-cat="${esc(c)}" aria-checked="${d.c === c}">${CHECK_ICON}<b>${esc(c)}</b></button>`).join("");
-    menu.innerHTML = `<div class="mh">分类</div><div class="cmlist">${cats}</div><div class="sep"></div>`
+    // 子分类只列当前分类下的；第一项「不分」是清掉
+    const subs = data.subcats?.[d.c] ?? [];
+    const subMenu = subs.length ? `<div class="mh">子分类</div><div class="cmlist">${["", ...subs].map((s) => `<button role="menuitemradio" data-sub="${esc(s)}" aria-checked="${(d.sc ?? "") === s}">${CHECK_ICON}<b>${s ? esc(s) : "不分"}</b></button>`).join("")}</div><div class="sep"></div>` : "";
+    menu.innerHTML = `<div class="mh">分类</div><div class="cmlist">${cats}</div><div class="sep"></div>${subMenu}`
       + (d.x ? `<button role="menuitem" data-act="refollow">恢复关注</button>` : `<button role="menuitem" class="warn" data-act="unfollow">标记取关</button>`);
   }
   menuFor = btn; btn.setAttribute("aria-expanded", "true");
@@ -1730,11 +2509,17 @@ $("cardMenu").addEventListener("click", (e) => {
     return;
   }
   if (menuFor.dataset.vid) { const v = vById.get(menuFor.dataset.vid); closeCardMenu(true); return videoMenuPick(v, it); }
+  if (menuFor.dataset.bid) { const d = bdata?.byId.get(menuFor.dataset.bid); closeCardMenu(true); return d && bookMenuPick(d, it); }
   const d = byId.get(menuFor.dataset.id);
   closeCardMenu(true);
   if (!d) return;
   if (it.dataset.cat !== undefined) {
-    if (it.dataset.cat !== d.c) change(d, {c: it.dataset.cat}, "/category", {id: d.id, category: it.dataset.cat}, "分类");
+    // 原来的子分类不属于新分类就一起清掉，和 Worker 的做法一致
+    const keep = d.sc && (data.subcats?.[it.dataset.cat] ?? []).includes(d.sc);
+    if (it.dataset.cat !== d.c) change(d, keep || !d.sc ? {c: it.dataset.cat} : {c: it.dataset.cat, sc: null}, "/category", {id: d.id, category: it.dataset.cat}, "分类");
+  } else if (it.dataset.sub !== undefined) {
+    const sc = it.dataset.sub || null;
+    if (sc !== d.sc) change(d, {sc}, "/subcategory", {id: d.id, subcategory: sc ?? ""}, "子分类");
   } else if (it.dataset.act === "unfollow") {
     const date = nowLocal();
     change(d, {x: true, d: date}, "/unfollow", {id: d.id, on: true, date}, "取关");
@@ -1814,7 +2599,7 @@ $("sync").onclick = () => {
 // 排序菜单：按钮上显示当前排法，点开是带勾选的单选菜单；选中、点外面或按 Esc 都会收起
 const SORT_LABEL = {catSort: {count: "账号数", name: "名称"}, arrange: {follow: "关注先后", band: "粉丝数", name: "名称", time: "发布时间", likes: "点赞数"}};
 function syncSort(id, val) {
-  $(id).querySelector(".lab").textContent = id === "catSort" && isWx() ? ({name: "名称", recent: "更新时间"}[val] ?? "篇数") : id === "catSort" && state.mode === "videos" ? (val === "name" ? "名称" : `${noun()}数`) : SORT_LABEL[id][val];
+  $(id).querySelector(".lab").textContent = isDouban() ? (id === "catSort" ? (val === "name" ? "名称" : `${shelf().unit}数`) : shelf().arranges.find(([v]) => v === val)?.[1] ?? "默认") : id === "catSort" && isWx() ? ({name: "名称", recent: "更新时间"}[val] ?? "篇数") : id === "catSort" && state.mode === "videos" ? (val === "name" ? "名称" : `${noun()}数`) : SORT_LABEL[id][val];
   $(id).querySelectorAll("[role=menuitemradio]").forEach((m) => m.setAttribute("aria-checked", String(m.dataset.val === val)));
 }
 function toggleMenu(id, open) {
@@ -1839,9 +2624,9 @@ function onSort(id, pick) {
   };
 }
 document.addEventListener("click", (e) => { if (!e.target.closest(".sort")) { toggleMenu("catSort", false); toggleMenu("arrange", false); } });
-onSort("catSort", (v) => { if (isWx()) { state.w.catSort = v; store.set("wcatSort", v); } else if (state.mode === "videos") { state.v.catSort = v; store.set("vcatSort", v); } else { state.catSort = v; store.set("catSort", v); } renderSide(); });
+onSort("catSort", (v) => { if (isDouban()) { state.b.catSort = v; store.set(shelf().keys.catSort, v); } else if (isWx()) { state.w.catSort = v; store.set("wcatSort", v); } else if (state.mode === "videos") { state.v.catSort = v; store.set("vcatSort", v); } else { state.catSort = v; store.set("catSort", v); } renderSide(); });
 onSort("arrange", (v) => {
-  if (state.mode === "videos") { state.v.arrange = v; store.set("varrange", v); } else { state.arrange = v; store.set("arrange", v); }
+  if (isDouban()) { state.b.arrange = v; store.set(shelf().keys.arrange, v); } else if (state.mode === "videos") { state.v.arrange = v; store.set("varrange2", v); } else { state.arrange = v; store.set("arrange", v); }
   render(); $("panel").scrollTo({top: 0});
 });
 syncSort("catSort", state.catSort); syncSort("arrange", state.arrange);
@@ -1849,8 +2634,10 @@ syncSort("catSort", state.catSort); syncSort("arrange", state.arrange);
 document.querySelector("aside").addEventListener("click", (e) => {
   const b = e.target.closest("[data-v]"); if (!b) return;
   keepTop();
-  if (isWx()) { if (b.classList.contains("pin")) { state.w.view = b.dataset.v; state.w.acct = null; state.w.cat = null; } else if (state.w.by === "topic") state.w.cat = b.dataset.v; else state.w.acct = b.dataset.v; }
-  else if (state.mode === "videos") { state.v.view = b.dataset.v; state.v.folder = null; } else state.view = b.dataset.v;
+  state.sub = null;
+  if (isDouban()) { state.b.book = null; if (b.classList.contains("pin")) { state.b.view = b.dataset.v; state.b.cat = null; } else { state.b.view = B.ALL; state.b.cat = b.dataset.v; } }
+  else if (isWx()) { if (b.classList.contains("pin")) { state.w.view = b.dataset.v; state.w.acct = null; state.w.cat = null; } else if (state.w.by === "topic") state.w.cat = b.dataset.v; else state.w.acct = b.dataset.v; }
+  else if (state.mode === "videos") { state.v.view = b.dataset.v; } else state.view = b.dataset.v;
   state.q = ""; $("q").value = "";
   render(); $("panel").scrollTo({top: 0}); remember();
 });
@@ -1860,7 +2647,7 @@ $("plats").onclick = (e) => {
   switchPlat(b.dataset.p); $("panel").scrollTo({top: 0}); remember();
 };
 // 一万条逐键重排会顿，停手 120ms 后再筛
-$("q").oninput = (e) => { clearTimeout(typing); typing = setTimeout(() => { state.q = e.target.value.trim().toLowerCase(); render(); $("panel").scrollTo({top: 0}); remember(true); }, 120); };
+$("q").oninput = (e) => { clearTimeout(typing); typing = setTimeout(() => { state.q = e.target.value.trim().toLowerCase(); state.b.book = null; render(); $("panel").scrollTo({top: 0}); remember(true); }, 120); };
 $("q").onkeydown = (e) => { if (e.key === "Escape") { e.target.value = ""; state.q = ""; e.target.blur(); render(); remember(true); } };
 addEventListener("keydown", (e) => {
   if (e.key === "/" && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $("q").focus(); }
@@ -1874,23 +2661,43 @@ addEventListener("focus", refreshIfStale);
 $("tabs").onclick = (e) => {
   const b = e.target.closest("[data-lib]"); if (!b || b.dataset.lib === state.v.lib) return;
   keepTop();
-  state.v.lib = b.dataset.lib; store.set("vlib", state.v.lib); state.v.folder = null;
+  state.v.lib = b.dataset.lib; store.set("vlib", state.v.lib);
   renderSide(); render(); $("panel").scrollTo({top: 0}); remember();
 };
 // 微信的「公众号、内容」两个视图：公众号视图侧栏是公众号，内容视图侧栏是文章分类
 $("wby").onclick = (e) => {
   const b = e.target.closest("[data-by]"); if (!b || b.dataset.by === state.w.by) return;
   keepTop();
-  state.w.by = b.dataset.by; store.set("wby", state.w.by);
+  state.w.by = b.dataset.by;
   state.w.acct = null; state.w.cat = null; state.q = ""; $("q").value = "";
   renderSide(); render(); $("panel").scrollTo({top: 0}); remember();
 };
+// 豆瓣的三种分组方式：出版社、分类、专题，侧栏跟着换成那一种的组，做法同微信的「公众号、内容」
+$("bby").onclick = (e) => {
+  const b = e.target.closest("[data-by]"); if (!b || b.dataset.by === state.b.by) return;
+  keepTop();
+  state.b.by = b.dataset.by;
+  state.b.cat = null; state.q = ""; $("q").value = "";
+  renderSide(); render(); $("panel").scrollTo({top: 0}); remember();
+};
+// 豆瓣的「读书」「影视」两个页签：换网址（/douban 与 /douban/movie），两边各读各的数据；搜索清空，同换平台
+$("btabs").onclick = (e) => {
+  const b = e.target.closest("[data-kind]"); if (!b || b.dataset.kind === state.bkind) return;
+  keepTop(); closeCardMenu();
+  useShelf(b.dataset.kind); state.b.book = null;
+  setMode(state.mode);
+  if (bdata) showStamp(); else load(false);
+  remember();
+};
+// 豆瓣封面图读不到（标了有封面、图还没随部署上线，或文件删了）时拿掉图，露出下面生成的书封；error 不冒泡，在捕获阶段接
+$("list").addEventListener("error", (e) => { if (e.target.tagName === "IMG" && e.target.parentElement?.classList.contains("cv")) e.target.remove(); }, true);
 $("calBtn").querySelector(".ico").innerHTML = CAL_ICON;
 // 收起日历时日期筛选一并取消
 $("calBtn").onclick = () => calSet(state.cal.open ? {open: false, f: null} : {open: true});
 $("cal").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
-  if (b.dataset.calY) { const ys = state.cal.years ?? [], y = ys[ys.indexOf(state.cal.y) + Number(b.dataset.calY)]; return y == null ? undefined : calSet({y, m: null, f: null}); }
+  // 切年份：往前往后都从那一年第一个有记录的月份看起，列表也筛到这个月
+  if (b.dataset.calY) { const ys = state.cal.years ?? [], y = ys[ys.indexOf(state.cal.y) + Number(b.dataset.calY)]; if (y == null) return; const m = state.cal.firstMonth?.[y] ?? null; return calSet({y, m, f: m == null ? null : {y, m, d: null}}); }
   if (b.dataset.calM) { const m = Number(b.dataset.calM); return calSet({m, f: {y: state.cal.y, m, d: null}}); }
   if (b.dataset.calD) { const d = Number(b.dataset.calD), f = state.cal.f; return calSet({f: {y: state.cal.y, m: state.cal.m, d: f && f.d === d && f.y === state.cal.y && f.m === state.cal.m ? null : d}}); }
   if ("calClear" in b.dataset) return calSet({f: null});
@@ -1898,21 +2705,27 @@ $("cal").addEventListener("click", (e) => {
 $("list").addEventListener("click", (e) => { if (e.target.closest("[data-cal-clear]")) calSet({f: null}); });
 $("mode").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b && b.dataset.m !== state.mode) { keepTop(); setMode(b.dataset.m); remember(); } };
 
-// 浏览器的前进、后退：每次换页（博主与内容、平台、收藏与喜欢、入口、分类、收藏夹、首页某排的「全部」）把位置写进地址并新增一条历史记录，
+// 浏览器的前进、后退：每次换页（博主与内容、平台、收藏与喜欢、入口、分类、首页某排的「全部」）把位置写进地址并新增一条历史记录，
 // 后退、前进时按地址还原，回到离开时的滚动位置。地址也能收藏、分享，打开就是那一页
 history.scrollRestoration = "manual";
 function urlOf() {
   const u = new URLSearchParams();
   let path = `/${state.plat}`;
-  if (isWx()) {
+  if (isDouban() && state.b.book) return `${shelf().item}/${state.b.book}`;
+  if (isDouban()) {
+    // 豆瓣书架：/douban，分组方式不是出版社时写 by，选中的组放在 cat 里，入口不是全部图书时写 view。
+    // 影视页 /douban/movie 同样写法，分组方式不是导演时写 by
+    path = shelf().path;
+    if (state.b.by !== shelf().defBy) u.set("by", state.b.by);
+    if (state.b.cat) u.set("cat", state.b.cat); else if (state.b.view !== B.ALL) u.set("view", state.b.view);
+  } else if (isWx()) {
     // 微信只有一页：/wechat，选中的公众号放在 account 里
     if (state.w.by === "topic") u.set("by", "topic");
     if (state.w.by === "topic" && state.w.cat) u.set("cat", state.w.cat); else if (state.w.acct) u.set("account", state.w.acct); else if (state.w.view !== W.ALL) u.set("view", state.w.view);
   } else if (state.mode === "videos") {
     path += state.v.lib === "L" ? "/like" : "/collect";
     if (state.v.view !== V.ALL) u.set("view", state.v.view);
-    if (state.v.folder) u.set("folder", state.v.folder);
-  } else if (state.view !== ALL) u.set("view", state.view);
+  } else if (state.view !== ALL) { u.set("view", state.view); if (state.sub) u.set("sub", state.sub); }
   if (state.cal.open) u.set("cal", "1");
   if (state.cal.open && state.cal.f) { const f = state.cal.f; u.set("date", `${f.y}-${String(f.m + 1).padStart(2, "0")}${f.d ? `-${String(f.d).padStart(2, "0")}` : ""}`); }
   if ($("q").value.trim()) u.set("q", $("q").value.trim());
@@ -1927,7 +2740,7 @@ function remember(replace) {
 // 离开当前页之前，把滚动位置记在当前这条历史记录上
 const keepTop = () => history.replaceState({...history.state, top: scroller().scrollTop}, "");
 // 按地址设定位置；地址里没写的项取默认值。返回要切到的页面和搜索词
-// 网址：/平台[/creator|/collect|/like]，分类、收藏夹、搜索词放在问号后面。
+// 网址：/平台[/creator|/collect|/like]，分类、搜索词放在问号后面。
 // 只打开 /app 时（没写平台）沿用 p 参数或上次停留的平台；没有数据的平台换到抖音
 function fromUrl() {
   const u = new URLSearchParams(location.search);
@@ -1936,32 +2749,42 @@ function fromUrl() {
   state.cal.open = u.get("cal") === "1" || Boolean(dm);
   state.cal.f = dm ? {y: +dm[1], m: +dm[2] - 1, d: dm[3] ? +dm[3] : null} : null;
   state.cal.y = dm ? +dm[1] : null; state.cal.m = dm ? +dm[2] - 1 : null;
-  const [, path, page] = location.pathname.match(/^\/([a-z]+)(?:\/(creator|collect|like))?\/?$/) ?? [];
+  const [, path, page, book, movie, film] = location.pathname.match(/^\/([a-z]+)(?:\/(creator|collect|like)|\/book\/(\d+)|\/(movie)(?:\/(\d+))?)?\/?$/) ?? [];
   const slug = path === "app" ? undefined : path;
   const plat = slugOf(slug ?? u.get("p") ?? "douyin");
   state.plat = ENABLED.has(plat) ? plat : "douyin";
   const mode = page ? (page === "creator" ? "follows" : "videos") : !slug && u.get("m") === "videos" ? "videos" : "follows";
-  if (state.plat === "wechat") {
+  if (state.plat === "douban") {
+    // 豆瓣没有日历；/douban 是读书，/douban/movie 是影视。by 是分组方式（genre 分类、topic 专题，不写是出版社或导演），cat 是选中的组，view 是入口
+    state.cal.open = false; state.cal.f = null;
+    useShelf(movie ? "movie" : "book");
+    state.b.cat = u.get("cat");
+    state.b.view = state.b.cat ? B.ALL : bViewOf(u.get("view")) ?? B.ALL;
+    state.b.by = bByOf(u.get("by")) ?? shelf().defBy;
+    state.b.book = book ?? film ?? null; noteEditing = false;
+    return {mode: state.mode, q: u.get("q") ?? ""};
+  } else if (state.plat === "wechat") {
     // 微信只有一页，/wechat/collect（上一版的收藏页）也认；account 是选中的公众号
     state.w.acct = u.get("account"); state.w.view = u.get("view") ?? W.ALL; state.w.cat = u.get("cat");
-    state.w.by = u.get("by") === "topic" || state.w.cat ? "topic" : state.w.acct ? "acct" : state.w.by;
+    state.w.by = u.get("by") === "topic" || state.w.cat ? "topic" : "acct";
     return {mode: state.mode, q: u.get("q") ?? ""};
   } else if (mode === "videos") {
     state.v.lib = page === "like" || (!page && u.get("lib") === "L") ? "L" : "K";
     state.v.view = u.get("view") ?? V.ALL;
-    state.v.folder = u.get("folder");
-  } else state.view = u.get("view") ?? ALL;
+  } else { state.view = u.get("view") ?? ALL; state.sub = u.get("sub"); }
   return {mode, q: u.get("q") ?? ""};
 }
 function setQuery(q) { $("q").value = q; state.q = q.trim().toLowerCase(); }
 addEventListener("popstate", (e) => {
-  closeCardMenu();
-  const plat = state.plat, {mode, q} = fromUrl();
+  closeCardMenu(); closeZoom();
+  const plat = state.plat, kind = state.bkind, {mode, q} = fromUrl();
   // 换了平台：重新读那个平台的数据，读到后照常显示
   if (state.plat !== plat) { resetPlatData(); setMode(mode); setQuery(q); load(false); return; }
-  if (mode !== state.mode) setMode(mode);
+  // 豆瓣换了页签：换好页头与侧栏，那一边还没读过就读
+  if (isDouban() && state.bkind !== kind) { setMode(mode); setQuery(q); if (!bdata) { load(false); return; } showStamp(); }
+  else if (mode !== state.mode) setMode(mode);
   setQuery(q);
-  if (!(isWx() ? wdata : mode === "videos" ? vdata : data)) return;
+  if (!(isDouban() ? bdata : isWx() ? wdata : mode === "videos" ? vdata : data)) return;
   buildPlats(); renderSide(); render();
   const sc = scroller(), top = e.state?.top ?? 0;
   while (done < queue.length && sc.scrollHeight < top + innerHeight * 2) more();
