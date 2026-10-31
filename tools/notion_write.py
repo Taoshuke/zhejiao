@@ -24,7 +24,12 @@ NOTION_VERSION = "2025-09-03"
 WORKERS = 6
 
 
+import functools
+
+
+@functools.cache
 def _token():
+    """第一次请求 Notion 时才读令牌，没设令牌也能看各脚本的用法说明"""
     tok = os.environ.get("NOTION_WRITE_TOKEN")
     if not tok and sys.platform == "win32":
         import winreg
@@ -35,14 +40,11 @@ def _token():
     return tok.strip()
 
 
-TOKEN = _token()
-
-
 def api(method, path, body=None):
     for attempt in range(1, 9):
         req = urllib.request.Request(f"https://api.notion.com/v1/{path}", method=method,
                                      data=json.dumps(body).encode() if body is not None else None,
-                                     headers={"Authorization": f"Bearer {TOKEN}", "Notion-Version": NOTION_VERSION, "Content-Type": "application/json"})
+                                     headers={"Authorization": f"Bearer {_token()}", "Notion-Version": NOTION_VERSION, "Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=60) as f:
                 return json.load(f)

@@ -38,7 +38,9 @@ from pathlib import Path
 
 from notion_write import WORKERS, api
 
-DATA_SOURCE_ID = os.environ.get("NOTION_CREATORS_DS", "").strip() or sys.exit("缺少环境变量 NOTION_CREATORS_DS（「抖音博主」的数据源 ID）")
+def data_source():
+    """「抖音博主」的数据源 ID，用到时才读环境变量，没设也能看用法说明"""
+    return os.environ.get("NOTION_CREATORS_DS", "").strip() or sys.exit("缺少环境变量 NOTION_CREATORS_DS（「抖音博主」的数据源 ID）")
 FANS_THRESHOLD = 0.01
 SUBCATEGORIES_FILE = Path(__file__).resolve().parent.parent / "src" / "subcategories.mjs"
 
@@ -72,7 +74,7 @@ def notion_rows():
         body = {"page_size": 100}
         if cursor:
             body["start_cursor"] = cursor
-        batch = api("POST", f"data_sources/{DATA_SOURCE_ID}/query", body)
+        batch = api("POST", f"data_sources/{data_source()}/query", body)
         for pg in batch["results"]:
             p = pg["properties"]
             rows.append({
@@ -254,7 +256,7 @@ def apply(out_dir):
     now = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
     jobs = []
     for x in (x for x in p["new"] if x["kind"] == "create"):
-        jobs.append((f"new:{x['sec_uid']}", "POST", "pages", {"parent": {"type": "data_source_id", "data_source_id": DATA_SOURCE_ID}, "properties": {
+        jobs.append((f"new:{x['sec_uid']}", "POST", "pages", {"parent": {"type": "data_source_id", "data_source_id": data_source()}, "properties": {
             "名称": {"title": [{"text": {"content": x["name"]}}]},
             "平台": {"select": {"name": "抖音"}},
             "分类": {"select": {"name": x["category"]}},
