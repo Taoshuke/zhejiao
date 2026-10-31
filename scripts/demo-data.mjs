@@ -5,7 +5,7 @@
  *   npx wrangler dev 或任意静态服务器打开 public/（平台页是 app.html）
  * 名字、文案、链接全是编的，和真实账号无关。同样的种子每次生成同样的数据。
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { writeSummary } from "./summary.mjs";
 import { SUBCATEGORIES } from "../src/subcategories.mjs";
@@ -25,6 +25,14 @@ const avatar = (name) => {
   const h = hue(name), ch = [...name.replace(/^@/, "")][0].toUpperCase();
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 55% 62%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360} 50% 42%)"/></linearGradient></defs><rect width="96" height="96" fill="url(#g)"/><text x="48" y="50" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="42" font-weight="600" fill="#fff" text-anchor="middle" dominant-baseline="central">${ch}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+// 演示封面与海报是 scripts/demo-covers/make.py 画好的 jpg，拷进 public/covers/ 并在条目上标 f，网页就显示图而不是生成的书封
+const cover = (dir, it) => {
+  const src = join(ROOT, "scripts/demo-covers", dir, `${it.v}.jpg`);
+  if (!existsSync(src)) return;
+  mkdirSync(join(ROOT, "public/covers", dir), { recursive: true });
+  copyFileSync(src, join(ROOT, "public/covers", dir, `${it.v}.jpg`));
+  it.f = 1;
 };
 const write = (file, data, dir = "public/data") => {
   const path = join(ROOT, dir, file);
@@ -257,6 +265,7 @@ const book = (n, i) => {
 };
 // 文件里按加入先后从新到旧排，网页「近期新增」取前面的
 const books = BOOK_TITLES.map(book);
+books.forEach((it) => cover("douban", it));
 write("douban/videos.json", { updated: new Date(now).toISOString(), cats: { g: BOOK_CATS, z: BOOK_TOPICS }, items: books });
 
 // 几本书带详情资料（public/details/douban/<编号>.json）：副标题、丛书、页数、评分、目录与简介。
@@ -295,6 +304,7 @@ const movies = MOVIE_TITLES.map((n, i) => {
   if (rand() < 0.08) { it.x = 1; it.d = daysAgo(int(1, 30)); }
   return it;
 });
+movies.forEach((it) => cover("douban-movie", it));
 write("douban/movies.json", { updated: new Date(now).toISOString(), cats: { g: MOVIE_CATS, z: MOVIE_TOPICS }, items: movies });
 movies.slice(0, 2).forEach((it) => write(`douban-movie/${it.v}.json`, {
   orig: "Demo Film", genre: it.g, region: it.rg, lang: "汉语", date: `${it.y}-0${int(1, 9)}-1${int(0, 9)}`, dur: `${int(88, 140)}分钟`,
